@@ -22,6 +22,8 @@ cp "$JAR" "$DEST/mcmcp.jar"
 echo "Deployed -> $DEST/mcmcp.jar  ($(du -h "$DEST/mcmcp.jar" | cut -f1))"
 
 if [[ "${1:-}" == "--restart" ]]; then
+  before_inode="$(server_log_inode)"
+
   pid="$(pgrep -f "paper-${MC_VERSION}-${PAPER_BUILD}.jar" || true)"
   if [[ -n "$pid" ]]; then
     echo "Stopping server (pid $pid) ..."
@@ -29,10 +31,14 @@ if [[ "${1:-}" == "--restart" ]]; then
     while kill -0 "$pid" 2>/dev/null; do sleep 0.3; done
     echo "Stopped."
   fi
+
   echo "Starting server ..."
+  mkdir -p "$REPO_ROOT/server/logs"
   nohup "$REPO_ROOT/scripts/run-server.sh" > "$REPO_ROOT/server/logs/nohup.out" 2>&1 &
-  echo "Server starting in the background. Tail it with:"
-  echo "  tail -f $REPO_ROOT/server/logs/latest.log"
+
+  # Block until it is genuinely up, so callers never read a stale log.
+  wait_for_server_ready "$before_inode"
+  echo "Server ready."
 else
   echo
   echo "Now restart the server so it picks the jar up (type 'stop' in its tab, then re-run scripts/run-server.sh)."

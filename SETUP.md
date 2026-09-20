@@ -51,10 +51,26 @@ Restart this whenever you rebuild the plugin.
 
 Will be `./scripts/run-backend.sh`, serving `127.0.0.1:8000`.
 
-### Tab 3 — Deploy loop _(not built yet — step 2.1.2)_
+### Tab 3 — Deploy loop
 
-Will be `./scripts/deploy.sh` — builds the plugin jar and copies it into
-`server/plugins/`. Run it, then restart Tab 1.
+Builds the plugin jar and copies it to `server/plugins/mcmcp.jar`:
+
+```bash
+./scripts/deploy.sh
+```
+
+Then restart Tab 1 so the server picks it up. Or do both at once — this stops the
+server, rebuilds, restarts it, and waits until it is genuinely ready:
+
+```bash
+./scripts/deploy.sh --restart
+```
+
+`--restart` detaches the server from Tab 1, so afterwards follow the log with:
+
+```bash
+tail -f server/logs/latest.log
+```
 
 ---
 

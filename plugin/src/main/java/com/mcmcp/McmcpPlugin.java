@@ -32,6 +32,8 @@ public final class McmcpPlugin extends JavaPlugin {
 
         banner();
 
+        registerCommand("mc2p", new McmcpCommand(this));
+
         getLogger().info("Ready. Try: /mc2p a small medieval cottage");
     }
 
@@ -42,6 +44,24 @@ public final class McmcpPlugin extends JavaPlugin {
         // /reload would keep mutating the world with no owner.
         getLogger().info("mcmcp disabled.");
         instance = null;
+    }
+
+    /**
+     * Wires a command declared in {@code plugin.yml} to its executor.
+     *
+     * <p>Fails loudly rather than silently: a typo between here and {@code plugin.yml}
+     * gives you a command that exists but does nothing, which is a miserable thing to
+     * debug with an audience watching.
+     */
+    private void registerCommand(String name, org.bukkit.command.CommandExecutor executor) {
+        org.bukkit.command.PluginCommand cmd = getCommand(name);
+        if (cmd == null) {
+            getLogger().severe("Command /" + name + " is not declared in plugin.yml — /" + name
+                    + " will not work.");
+            return;
+        }
+        cmd.setExecutor(executor);
+        getLogger().info("Registered /" + name);
     }
 
     /**

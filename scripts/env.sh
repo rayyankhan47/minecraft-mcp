@@ -35,3 +35,27 @@ require_java_21() {
     exit 1
   fi
 }
+
+# Paper rotates logs/latest.log on every boot, so "is the server up?" cannot be
+# answered by grepping that file alone — between the stop and the next start it still
+# holds the PREVIOUS run's "Done (" line, and you will happily read stale output.
+# Gate on the inode changing first, then on the readiness line.
+server_log() { echo "$REPO_ROOT/server/logs/latest.log"; }
+
+server_log_inode() { stat -f %i "$(server_log)" 2>/dev/null || echo 0; }
+
+# wait_for_server_ready <inode-before-restart> [timeout-seconds]
+wait_for_server_ready() {
+  local before="${1:-0}" timeout="${2:-120}"
+  local log deadline
+  log="$(server_log)"
+  deadline=$(( $(date +%s) + timeout ))
+  while (( $(date +%s) < deadline )); do
+    if [[ -f "$log" && "$(server_log_inode)" != "$before" ]] && grep -q 'Done (' "$log" 2>/dev/null; then
+      return 0
+    fi
+    sleep 0.3
+  done
+  echo "TIMED OUT waiting for the server to report Done after ${timeout}s" >&2
+  return 1
+}

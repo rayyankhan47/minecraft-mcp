@@ -19,5 +19,7 @@ echo
 
 # -Xms == -Xmx avoids heap-resize pauses mid-build. Aikar's flags are overkill for a
 # localhost flat world; a fixed 2G heap is plenty and starts faster.
-exec java -Xms2G -Xmx2G -XX:+UseG1GC -Dcom.mojang.eula.agree=true \
-  -jar "$JAR" --nogui
+# No -Dcom.mojang.eula.agree: setup-server.sh already writes eula.txt, and the flag
+# makes Paper print three ERROR-level nag lines at every boot. The console is our only
+# debugging surface during a demo — it should not cry wolf.
+exec java -Xms2G -Xmx2G -XX:+UseG1GC -jar "$JAR" --nogui
