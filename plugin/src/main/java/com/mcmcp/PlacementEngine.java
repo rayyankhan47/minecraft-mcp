@@ -312,11 +312,15 @@ public final class PlacementEngine {
 
         Player player = playerId == null ? null : Bukkit.getPlayer(playerId);
         if (player != null && player.isOnline()) {
-            Chat.success(player, "Done — " + placed + " blocks in "
+            Chat.success(player, "Built " + placed + " blocks in "
                     + String.format("%.1f", totalMs / 1000.0) + "s");
+            Chat.detail(player, "first block after " + firstMs + "ms");
             if (failed > 0) {
                 Chat.detail(player, failed + " block(s) could not be placed");
             }
+            player.sendActionBar(Component.text("\u2713 ", NamedTextColor.GREEN)
+                    .append(Component.text(placed + " blocks", NamedTextColor.WHITE)));
+            world.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.4f);
         }
     }
 }
