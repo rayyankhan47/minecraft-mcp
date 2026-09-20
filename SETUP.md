@@ -123,13 +123,21 @@ These drive the server console directly, so they work with nobody logged in. The
 need the server started detached (`./scripts/deploy.sh --restart`), which sets up the
 console pipe they write to.
 
-| Script | What it proves |
-|---|---|
-| `./scripts/doctor.sh` | The toolchain is sane. Run before demoing. |
-| `./scripts/verify-build.sh` | The placement engine builds the hardcoded cottage correctly — asserts 13 real world blocks. |
-| `./scripts/verify-stream.sh` | Blocks appear *while the stream is still open*, not after it closes. |
-| `./scripts/verify-failures.sh` | Malformed JSON, bad block names, oversized builds and a dead backend all degrade gracefully. **Kills the backend at the end — restart it.** |
-| `./.venv/bin/python scripts/test-stream.py` | The backend flushes per line. |
+Run them in this order; `verify-resilience.sh` restarts the backend as its last act,
+so anything after it can find the port empty for a second or two.
+
+| Script | What it proves | Needs |
+|---|---|---|
+| `./scripts/doctor.sh` | The toolchain is sane, and — once a key is present — that the model id actually resolves. Run before demoing. | — |
+| `./.venv/bin/python scripts/check-examples.py` | The worked examples in the system prompt, and every cached build, are geometrically sound: nothing floats, lanterns have something to hang from, there is always a door. | — |
+| `./scripts/verify-llm.sh` | The real streaming client survives tokens split mid-JSON, markdown fences, junk lines, a stalled model, a 529 and a dropped connection. Runs against a fake Anthropic endpoint — **no API key, no spend**. | — |
+| `./scripts/verify-blocks.sh` | Every block name the demo can place is real. A typo silently becomes stone, which still "works" and looks wrong. | server |
+| `./scripts/verify-build.sh` | The placement engine builds the hardcoded cottage correctly — asserts 13 real world blocks. | server |
+| `./scripts/verify-stream.sh` | Blocks appear *while the stream is still open*, not after it closes. | both |
+| `./scripts/verify-failures.sh` | Malformed JSON, bad block names, oversized builds and a dead stream all degrade gracefully. | both |
+| `./scripts/verify-resilience.sh` | With the model unreachable, a build still appears and the player sees no error. **Kills and restarts the backend.** | both |
+| `./.venv/bin/python scripts/test-stream.py` | The backend flushes per line. | both |
+| `./.venv/bin/python scripts/bakeoff.py` | Time-to-first-shape per model against the 8s budget. **This one really calls Claude and costs money.** | key |
 
 You can also send any console command yourself:
 
