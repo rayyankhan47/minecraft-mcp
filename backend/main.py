@@ -19,9 +19,11 @@ import time
 from collections.abc import AsyncIterator
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+
+import llm
 
 logging.basicConfig(
     level=logging.INFO,
@@ -136,11 +138,51 @@ async def health() -> dict[str, bool]:
     return {"ok": True}
 
 
+async def live_stream(prompt: str) -> AsyncIterator[bytes]:
+    """The real thing: Claude, streamed, one validated line at a time."""
+    started = time.monotonic()
+    shapes = 0
+    saw_done = False
+
+    try:
+        async for msg in llm.stream_build(prompt):
+            if msg.get("type") == "shape":
+                shapes += 1
+            elif msg.get("type") == "done":
+                saw_done = True
+            yield line(msg)
+
+    except llm.FirstTokenTimeout as exc:
+        # Step 8.2 turns this into a silent fallback to the nearest cached build.
+        log.warning("first-token timeout: %s", exc)
+        yield error("the model took too long to start")
+        return
+
+    except Exception as exc:  # noqa: BLE001 - nothing may escape and 500 the stream
+        log.exception("generation failed")
+        yield error(f"generation failed: {type(exc).__name__}")
+        return
+
+    # The model is told to end with `done`, but it is not trusted to.
+    if not saw_done:
+        yield done(f"{shapes} shapes")
+
+    log.info("live stream finished: %d shapes in %.1fs", shapes, time.monotonic() - started)
+
+
 @app.post("/build")
-async def build(req: BuildRequest) -> StreamingResponse:
-    log.info("build request from %s: %r", req.player, req.prompt)
-    return StreamingResponse(
-        mock_stream(req.prompt),
-        media_type=NDJSON,
-        headers=STREAM_HEADERS,
-    )
+async def build(
+    req: BuildRequest,
+    mock: int = Query(0, description="1 forces the hardcoded build, no model call"),
+) -> StreamingResponse:
+    use_mock = bool(mock) or not llm.have_api_key()
+
+    if use_mock and not mock:
+        log.warning("no ANTHROPIC_API_KEY found — serving the mock build. "
+                    "Put one in backend/.env to use the model.")
+
+    log.info("build request from %s: %r  (%s)",
+             req.player, req.prompt, "mock" if use_mock else llm.MODEL)
+
+    source = mock_stream(req.prompt) if use_mock else live_stream(req.prompt)
+    return StreamingResponse(source, media_type=NDJSON, headers=STREAM_HEADERS)
