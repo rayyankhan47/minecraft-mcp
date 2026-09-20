@@ -2,7 +2,10 @@ package com.mcmcp;
 
 import com.mcmcp.model.BlockPlacement;
 import com.mcmcp.model.Speed;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -69,7 +72,18 @@ public final class PlacementEngine {
      */
     private static final int MAX_SOUNDS_PER_TICK = 4;
 
+    /** Ticks between a ghost block appearing and the real one replacing it. */
+    private static final long GHOST_SWAP_TICKS = 2L;
+
+    /**
+     * The "under construction" marker for slow placements. A saturated colour that
+     * exists almost nowhere in a real build, so each placement reads clearly on camera
+     * before it resolves.
+     */
+    private static final BlockData GHOST = Material.LIGHT_BLUE_CONCRETE.createBlockData();
+
     private int soundsThisTick;
+    private int lastActionBarCount = -1;
 
     /** When the player hit enter. The number that matters is command to first block. */
     private final long commandNanos;
@@ -179,6 +193,27 @@ public final class PlacementEngine {
             }
             place(queue.poll());
         }
+
+        updateActionBar();
+    }
+
+    /**
+     * A progress readout on the action bar. Cheap, and it turns "blocks are appearing"
+     * into "something is working through a plan".
+     */
+    private void updateActionBar() {
+        if (playerId == null || placed == lastActionBarCount) {
+            return;
+        }
+        lastActionBarCount = placed;
+
+        Player player = Bukkit.getPlayer(playerId);
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        player.sendActionBar(Component.text("\u26cf ", NamedTextColor.AQUA)
+                .append(Component.text(placed + " / " + enqueued.get() + " blocks",
+                        NamedTextColor.WHITE)));
     }
 
     /** One block. Wrapped, because one bad block must never stop a build. */
@@ -194,7 +229,11 @@ public final class PlacementEngine {
 
             // applyPhysics=false is not optional. With physics on, sand falls, torches
             // pop off, water spreads, and a half-built structure collapses as you watch.
-            block.setBlockData(p.data, false);
+            if (p.speed == Speed.SLOW && p.data.getMaterial() != Material.AIR) {
+                ghostThenSwap(block, p.data);
+            } else {
+                block.setBlockData(p.data, false);
+            }
 
             if (p.speed != Speed.INSTANT) {
                 effects(block, p.data);
@@ -213,6 +252,28 @@ public final class PlacementEngine {
                 plugin.getLogger().warning("placement failed at " + p + ": " + t);
             }
         }
+    }
+
+    /**
+     * Places a coloured marker first and the real block two ticks later.
+     *
+     * <p>At one block every 0.3 seconds a slow placement is the thing the camera is on,
+     * and a two-beat placement reads far better than a single pop.
+     */
+    private void ghostThenSwap(Block block, BlockData real) {
+        block.setBlockData(GHOST, false);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            // The build may have been cancelled in the two ticks since. Leaving a stray
+            // ghost block behind is much better than writing into a cancelled build.
+            if (cancelled.get()) {
+                return;
+            }
+            try {
+                block.setBlockData(real, false);
+            } catch (Throwable ignored) {
+                // A chunk unloaded underneath us. Not worth a log line.
+            }
+        }, GHOST_SWAP_TICKS);
     }
 
     /** Sound and particles. Skipped for the instant tier, which would be a wall of noise. */
