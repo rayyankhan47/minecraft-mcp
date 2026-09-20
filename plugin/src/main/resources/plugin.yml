@@ -1,0 +1,10 @@
+name: mcmcp
+version: 1.0.0
+main: com.mcmcp.McmcpPlugin
+api-version: '1.21'
+description: Natural language to Minecraft builds
+author: Rayyan Khan
+commands:
+  mc2p:
+    description: Build something with AI
+    usage: /mc2p <description>
