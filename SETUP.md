@@ -47,9 +47,28 @@ Type `stop` and press Enter for a clean shutdown; `Ctrl-C` also works.
 
 Restart this whenever you rebuild the plugin.
 
-### Tab 2 — Backend _(not built yet — step 4)_
+### Tab 2 — Backend _(keep running)_
 
-Will be `./scripts/run-backend.sh`, serving `127.0.0.1:8000`.
+```bash
+./scripts/run-backend.sh
+```
+
+Serves `127.0.0.1:8000`. Localhost on purpose — venue wifi cannot break this hop.
+Check it is alive:
+
+```bash
+curl -s http://127.0.0.1:8000/health
+```
+
+To prove it is streaming per line rather than buffering the whole response — the
+property the entire latency strategy rests on:
+
+```bash
+./.venv/bin/python scripts/test-stream.py "a small medieval cottage"
+```
+
+Every shape should arrive about a second apart. If they all land at once at the end,
+something is buffering and builds will appear as one lump.
 
 ### Tab 3 — Deploy loop
 
