@@ -62,6 +62,8 @@ public final class McmcpPlugin extends JavaPlugin {
 
         registerCommand("mc2p", new McmcpCommand(this));
 
+        pingBackend();
+
         getLogger().info("Ready. Try: /mc2p a small medieval cottage");
     }
 
@@ -72,6 +74,37 @@ public final class McmcpPlugin extends JavaPlugin {
         cancelAllBuilds();
         getLogger().info("mcmcp disabled.");
         instance = null;
+    }
+
+    /**
+     * Warms the connection to the backend so the first real build does not pay for the
+     * TCP handshake, and tells the console now — rather than mid-demo — if the backend
+     * is not up.
+     */
+    private void pingBackend() {
+        getServer().getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                        .connectTimeout(java.time.Duration.ofSeconds(2))
+                        .build();
+                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                        .uri(java.net.URI.create(BACKEND_URL + "/health"))
+                        .timeout(java.time.Duration.ofSeconds(2))
+                        .GET()
+                        .build();
+                java.net.http.HttpResponse<String> response =
+                        client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
+                    getLogger().info("backend is up: " + response.body().trim());
+                } else {
+                    getLogger().warning("backend answered HTTP " + response.statusCode());
+                }
+            } catch (Exception e) {
+                getLogger().warning("backend is NOT reachable at " + BACKEND_URL
+                        + " (" + e.getClass().getSimpleName() + ")."
+                        + " Start it with scripts/run-backend.sh, or use /mc2p local.");
+            }
+        });
     }
 
     /**

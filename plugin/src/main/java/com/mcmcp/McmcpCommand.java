@@ -53,7 +53,7 @@ public final class McmcpCommand implements CommandExecutor {
         // Console-only escape hatch: runs the hardcoded build at a fixed origin so the
         // placement pipeline can be exercised with no client attached. Not for players.
         if (!(sender instanceof Player) && args[0].equalsIgnoreCase("selftest")) {
-            return selftest(sender, commandNanos);
+            return selftest(sender, args, commandNanos);
         }
 
         if (!(sender instanceof Player player)) {
@@ -69,34 +69,68 @@ public final class McmcpCommand implements CommandExecutor {
 
         Chat.info(player, "Building: " + prompt);
 
-        // Step 3 checkpoint: the prompt is ignored and a hardcoded cottage is built.
-        // Step 4 replaces this with the streamed response from the backend.
         PlacementEngine engine = PlacementEngine.forPlayer(plugin, player, commandNanos);
         plugin.registerBuild(player.getUniqueId(), engine);
 
-        DemoBuild.thoughts().forEach(t -> Chat.thought(player, t));
+        // "/mc2p local <anything>" bypasses the backend entirely and builds the
+        // hardcoded cottage. This is the break-glass path: it works with no backend,
+        // no network and no API key.
+        if (args[0].equalsIgnoreCase("local")) {
+            DemoBuild.thoughts().forEach(t -> Chat.thought(player, t));
+            int queued = enqueueAll(engine, DemoBuild.cottage(), origin);
+            Chat.detail(player, queued + " blocks queued at " + format(origin));
+            engine.start();
+            engine.signalStreamDone();
+            return true;
+        }
 
-        int queued = enqueueAll(engine, DemoBuild.cottage(), origin);
-        Chat.detail(player, queued + " blocks queued at " + format(origin));
-
+        // The engine starts draining immediately, before a single block has arrived.
+        // Blocks are placed as they stream in rather than after the response closes —
+        // that is the whole point of the design.
         engine.start();
-        engine.signalStreamDone();
+
+        BuildSession.forPlayer(plugin, engine, player, prompt,
+                        McmcpPlugin.BACKEND_URL + "/build",
+                        origin.getBlockX(), origin.getBlockY(), origin.getBlockZ())
+                .startAsync();
+
         return true;
     }
 
-    /** Builds the hardcoded cottage near world spawn, reporting only to the console. */
-    private boolean selftest(CommandSender sender, long commandNanos) {
+    /**
+     * Builds near world spawn with no player attached, reporting only to the console.
+     *
+     * <p>{@code mc2p selftest} uses the hardcoded shape list; {@code mc2p selftest
+     * stream <prompt>} goes through the real backend. Between them they exercise the
+     * whole pipeline with no client connected.
+     */
+    private boolean selftest(CommandSender sender, String[] args, long commandNanos) {
         World world = Bukkit.getWorlds().get(0);
         Location origin = world.getSpawnLocation().clone().add(10, 0, 10);
         origin.setY(world.getHighestBlockYAt(origin) + 1);
 
-        plugin.getLogger().info("selftest: building at " + format(origin));
+        boolean streaming = args.length > 1 && args[1].equalsIgnoreCase("stream");
+        plugin.getLogger().info("selftest: building at " + format(origin)
+                + (streaming ? " via the backend" : " from the hardcoded list"));
 
         PlacementEngine engine = new PlacementEngine(plugin, world, null, commandNanos);
-        int queued = enqueueAll(engine, DemoBuild.cottage(), origin);
         engine.start();
-        engine.signalStreamDone();
 
+        if (streaming) {
+            String prompt = args.length > 2
+                    ? String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length))
+                    : "a small medieval cottage";
+            new BuildSession(plugin, engine, null, "console", prompt,
+                    McmcpPlugin.BACKEND_URL + "/build",
+                    origin.getBlockX(), origin.getBlockY(), origin.getBlockZ())
+                    .startAsync();
+            sender.sendMessage("selftest: streaming build started at " + format(origin));
+            plugin.getLogger().info("selftest: streaming build started at " + format(origin));
+            return true;
+        }
+
+        int queued = enqueueAll(engine, DemoBuild.cottage(), origin);
+        engine.signalStreamDone();
         sender.sendMessage("selftest: queued " + queued + " blocks at " + format(origin));
         plugin.getLogger().info("selftest: queued " + queued + " blocks at " + format(origin));
         return true;
