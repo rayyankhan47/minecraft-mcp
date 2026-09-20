@@ -25,10 +25,27 @@ else
   PROMPTS=("${DEFAULT_PROMPTS[@]}")
 fi
 
-curl -s --max-time 5 "$BACKEND/health" >/dev/null || {
+HEALTH="$(curl -s --max-time 5 "$BACKEND/health")" || {
   echo "FATAL: backend not responding at $BACKEND. Start it with scripts/run-backend.sh" >&2
   exit 1
 }
+[[ -n "$HEALTH" ]] || {
+  echo "FATAL: backend not responding at $BACKEND. Start it with scripts/run-backend.sh" >&2
+  exit 1
+}
+
+# Without a key /build silently serves the offline build. Seeding then writes the same
+# plain cottage under every prompt name and reports success for each — and because
+# nearest() matches fuzzily, every later fallback would replay that one box. A cache
+# that looks full and is not is worse than an empty one, so refuse outright.
+if ! grep -q '"live":true' <<<"$HEALTH"; then
+  echo "FATAL: the backend has no API key, so /build would serve the offline build." >&2
+  echo "       Seeding now would cache ${#PROMPTS[@]} copies of the same plain cottage" >&2
+  echo "       under ${#PROMPTS[@]} different names, and report success for all of them." >&2
+  echo >&2
+  echo "       Put a key in backend/.env, restart the backend, and re-run." >&2
+  exit 1
+fi
 
 echo "Seeding ${#PROMPTS[@]} build(s). Each one is a real model call."
 echo
@@ -55,6 +72,35 @@ import json,sys; print(json.dumps(sys.argv[1]))' "$prompt")")"
     bad=$((bad+1))
   elif (( finished > 0 && shapes > 0 )); then
     printf '   \033[32m✓\033[0m %d shapes in %ds\n' "$shapes" "$elapsed"
+    # 8.3.1 says to confirm each build looks good. The subjective half needs your eyes,
+    # but floating blocks, a missing door and unsupported lanterns are all checkable —
+    # and this is the build the audience sees when everything else has failed.
+    slug="$(python3 -c '
+import sys, re
+s = re.sub(r"[^a-z0-9]+", "-", sys.argv[1].lower()).strip("-")
+print(s)' "$prompt")"
+    if [[ -f "$REPO_ROOT/backend/cache/$slug.ndjson" ]]; then
+      verdict="$("$REPO_ROOT/.venv/bin/python" - "$REPO_ROOT/backend/cache/$slug.ndjson" <<'PYA'
+import importlib.util, io, json, contextlib, re, sys, pathlib
+root = pathlib.Path(__file__).resolve().parent if False else pathlib.Path.cwd()
+spec = importlib.util.spec_from_file_location("chk", "scripts/check-examples.py")
+chk = importlib.util.module_from_spec(spec); spec.loader.exec_module(chk)
+msgs = [json.loads(l) for l in pathlib.Path(sys.argv[1]).read_text().splitlines()
+        if l.strip().startswith("{")]
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    chk.audit("x", msgs, strict_shape_count=False)
+bad = [re.sub(r"\x1b\[[0-9;]*m", "", l).strip().lstrip("✗").strip()
+       for l in buf.getvalue().splitlines() if "✗" in l]
+print("; ".join(bad) if bad else "clean")
+PYA
+)"
+      if [[ "$verdict" == "clean" ]]; then
+        printf '     quality: \033[32mclean\033[0m\n'
+      else
+        printf '     quality: \033[33m%s\033[0m  <- consider re-running this prompt\n' "$verdict"
+      fi
+    fi
     ok=$((ok+1))
   else
     printf '   \033[31m✗\033[0m incomplete stream (%d shapes, no done)\n' "$shapes"

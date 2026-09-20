@@ -190,9 +190,15 @@ async def mock_stream(prompt: str) -> AsyncIterator[bytes]:
 
 
 @app.get("/health")
-async def health() -> dict[str, bool]:
-    """Pinged by the plugin on enable, to warm the connection before it is needed."""
-    return {"ok": True}
+async def health() -> dict[str, object]:
+    """Pinged by the plugin on enable, to warm the connection before it is needed.
+
+    `live` says whether a real model call is possible. Without it, /build quietly serves
+    the offline build — correct behaviour for a demo, and a trap for any tooling that
+    assumes a 200 means the model answered. Only the presence of a key is reported here,
+    never the key.
+    """
+    return {"ok": True, "live": llm.have_api_key(), "model": llm.MODEL}
 
 
 async def live_stream(prompt: str) -> AsyncIterator[bytes]:
