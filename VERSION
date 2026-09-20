@@ -1,0 +1,12 @@
+# The single source of truth for the Minecraft version. Sourced by scripts/env.sh,
+# read by plugin/build.gradle.kts, and it MUST match your Minecraft launcher profile
+# exactly or the client will refuse to connect.
+#
+# Why 1.21.x and not 26.x: Minecraft 26.1+ requires Java 25. We are on Java 21, which
+# is the widely-installed LTS. A 26.x server jar on Java 21 dies immediately with
+# "unsupported class file major version". Resolved from Paper's v3 API on 2026-09-20;
+# 1.21.11 is the newest 1.21 line, build 132 is STABLE, Java 21 minimum.
+
+MC_VERSION=1.21.11
+PAPER_BUILD=132
+PAPER_API_VERSION=1.21.11-R0.1-SNAPSHOT
