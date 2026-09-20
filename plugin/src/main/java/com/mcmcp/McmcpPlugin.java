@@ -2,6 +2,9 @@ package com.mcmcp;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -26,6 +29,31 @@ public final class McmcpPlugin extends JavaPlugin {
         return instance;
     }
 
+    /**
+     * At most one build per player, enforced here. A second {@code /mc2p} cancels the
+     * first rather than interleaving two structures into the same space.
+     */
+    private final Map<UUID, PlacementEngine> activeBuilds = new ConcurrentHashMap<>();
+
+    /** Registers a new build, cancelling whatever that player had running. */
+    public void registerBuild(UUID playerId, PlacementEngine engine) {
+        PlacementEngine previous = activeBuilds.put(playerId, engine);
+        if (previous != null) {
+            previous.cancel();
+            getLogger().info("cancelled the previous build for " + playerId);
+        }
+    }
+
+    /** Deregisters, but only if this engine is still the current one. */
+    public void finishBuild(UUID playerId, PlacementEngine engine) {
+        activeBuilds.remove(playerId, engine);
+    }
+
+    public void cancelAllBuilds() {
+        activeBuilds.values().forEach(PlacementEngine::cancel);
+        activeBuilds.clear();
+    }
+
     @Override
     public void onEnable() {
         instance = this;
@@ -39,9 +67,9 @@ public final class McmcpPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Nothing to tear down yet. Once BuildSession and PlacementEngine exist, every
-        // in-flight session gets cancelled here — an orphaned repeating task surviving a
-        // /reload would keep mutating the world with no owner.
+        // An orphaned repeating task surviving a /reload would keep mutating the world
+        // with no owner, so nothing is allowed to outlive the plugin.
+        cancelAllBuilds();
         getLogger().info("mcmcp disabled.");
         instance = null;
     }

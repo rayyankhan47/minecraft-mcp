@@ -1,0 +1,185 @@
+package com.mcmcp;
+
+import com.mcmcp.model.BlockPlacement;
+import com.mcmcp.model.Speed;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * Drains queued blocks into the world at a watchable pace.
+ *
+ * <p><b>Thread contract.</b> {@link #enqueue} and {@link #signalStreamDone} are called
+ * from the async producer. Everything else — and every single world call — happens on
+ * the main server thread inside {@link #tick()}. The {@link ConcurrentLinkedQueue} is
+ * the only thing crossing between them, and it carries plain data.
+ *
+ * <p>One repeating task, every tick. Each invocation reads the speed tier off the head
+ * of the queue and places up to that tier's budget, stopping early if the tier changes
+ * mid-drain — otherwise a run of {@code instant} blocks followed by {@code slow} ones
+ * would dump 110 slow blocks in a single tick and destroy the pacing.
+ */
+public final class PlacementEngine {
+
+    private final McmcpPlugin plugin;
+    private final UUID playerId;
+    private final World world;
+
+    private final ConcurrentLinkedQueue<BlockPlacement> queue = new ConcurrentLinkedQueue<>();
+    private final AtomicBoolean streamDone = new AtomicBoolean(false);
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+    private final AtomicInteger enqueued = new AtomicInteger(0);
+
+    private BukkitTask task;
+    private int tickCounter;
+    private int placed;
+    private int failed;
+
+    /** When the player hit enter. The number that matters is command to first block. */
+    private final long commandNanos;
+    private long firstBlockNanos = -1L;
+
+    public PlacementEngine(McmcpPlugin plugin, Player player, long commandNanos) {
+        this.plugin = plugin;
+        this.playerId = player.getUniqueId();
+        this.world = player.getWorld();
+        this.commandNanos = commandNanos;
+    }
+
+    // ---- producer side (async thread) --------------------------------------
+
+    public void enqueue(List<BlockPlacement> placements) {
+        if (cancelled.get() || placements == null || placements.isEmpty()) {
+            return;
+        }
+        queue.addAll(placements);
+        enqueued.addAndGet(placements.size());
+    }
+
+    /** No more blocks are coming. The engine finishes once the queue drains. */
+    public void signalStreamDone() {
+        streamDone.set(true);
+    }
+
+    public boolean isCancelled() {
+        return cancelled.get();
+    }
+
+    public int totalEnqueued() {
+        return enqueued.get();
+    }
+
+    // ---- lifecycle ---------------------------------------------------------
+
+    /** Must be called on the main thread. */
+    public void start() {
+        task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1L, 1L);
+    }
+
+    /** Safe from any thread. Idempotent. */
+    public void cancel() {
+        if (!cancelled.compareAndSet(false, true)) {
+            return;
+        }
+        queue.clear();
+        BukkitTask t = task;
+        if (t != null) {
+            t.cancel();
+            task = null;
+        }
+    }
+
+    // ---- consumer side (main thread only) ----------------------------------
+
+    private void tick() {
+        if (cancelled.get()) {
+            return;
+        }
+
+        BlockPlacement head = queue.peek();
+        if (head == null) {
+            // Nothing to do. If the producer has also finished, so have we.
+            if (streamDone.get()) {
+                finish();
+            }
+            return;
+        }
+
+        tickCounter++;
+
+        Speed tier = head.speed;
+
+        // The slow tier is a counter: it only acts on every Nth tick.
+        if (tier.tickInterval > 1 && tickCounter % tier.tickInterval != 0) {
+            return;
+        }
+
+        for (int i = 0; i < tier.blocksPerTick; i++) {
+            BlockPlacement next = queue.peek();
+            // Stop at a tier boundary so the next tier gets its own budget.
+            if (next == null || next.speed != tier) {
+                break;
+            }
+            place(queue.poll());
+        }
+    }
+
+    /** One block. Wrapped, because one bad block must never stop a build. */
+    private void place(BlockPlacement p) {
+        try {
+            Block block = world.getBlockAt(p.x, p.y, p.z);
+
+            // "replace" restricts a shape to overwriting one specific material. This is
+            // how carving works — a fill of air that only eats stone, say.
+            if (p.replace != null && block.getType() != p.replace.getMaterial()) {
+                return;
+            }
+
+            // applyPhysics=false is not optional. With physics on, sand falls, torches
+            // pop off, water spreads, and a half-built structure collapses as you watch.
+            block.setBlockData(p.data, false);
+
+            placed++;
+            if (firstBlockNanos < 0) {
+                firstBlockNanos = System.nanoTime();
+                plugin.getLogger().info(String.format(
+                        "first block placed %.0f ms after command",
+                        (firstBlockNanos - commandNanos) / 1_000_000.0));
+            }
+        } catch (Throwable t) {
+            failed++;
+            if (failed <= 5) {
+                plugin.getLogger().warning("placement failed at " + p + ": " + t);
+            }
+        }
+    }
+
+    private void finish() {
+        long totalMs = (System.nanoTime() - commandNanos) / 1_000_000L;
+        long firstMs = firstBlockNanos < 0 ? -1 : (firstBlockNanos - commandNanos) / 1_000_000L;
+
+        cancel();
+        plugin.finishBuild(playerId, this);
+
+        plugin.getLogger().info(String.format(
+                "build complete: %d blocks placed, %d failed, first block %d ms, total %d ms",
+                placed, failed, firstMs, totalMs));
+
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null && player.isOnline()) {
+            Chat.success(player, "Done — " + placed + " blocks in "
+                    + String.format("%.1f", totalMs / 1000.0) + "s");
+            if (failed > 0) {
+                Chat.detail(player, failed + " block(s) could not be placed");
+            }
+        }
+    }
+}
