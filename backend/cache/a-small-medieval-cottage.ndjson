@@ -1,0 +1,17 @@
+{"type":"thought","text":"Thinking about: a small medieval cottage"}
+{"type":"thought","text":"Laying a cobblestone foundation"}
+{"type":"shape","phase":"foundation","speed":"instant","op":"fill","from":[0,0,0],"to":[8,0,8],"block":"minecraft:cobblestone"}
+{"type":"thought","text":"Raising the oak walls"}
+{"type":"shape","phase":"structure","speed":"fast","op":"walls","from":[0,1,0],"to":[8,3,8],"block":"minecraft:oak_planks"}
+{"type":"thought","text":"Cutting a doorway and two windows"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[4,1,0],"to":[4,2,0],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[2,2,0],"to":[2,2,0],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[6,2,0],"to":[6,2,0],"block":"minecraft:air"}
+{"type":"thought","text":"Closing the roof in"}
+{"type":"shape","phase":"roof","speed":"instant","op":"fill","from":[0,4,0],"to":[8,4,8],"block":"minecraft:oak_planks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"walls","from":[0,5,0],"to":[8,5,8],"block":"minecraft:cobblestone"}
+{"type":"thought","text":"Stacking the chimney"}
+{"type":"shape","phase":"detail","speed":"slow","op":"fill","from":[7,5,7],"to":[7,9,7],"block":"minecraft:cobblestone"}
+{"type":"thought","text":"Lighting the front edge"}
+{"type":"shape","phase":"detail","speed":"slow","op":"fill","from":[0,5,0],"to":[8,5,0],"block":"minecraft:sea_lantern"}
+{"type":"done","summary":"Mock cottage, 9 shapes"}

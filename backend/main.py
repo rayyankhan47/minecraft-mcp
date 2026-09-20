@@ -23,6 +23,7 @@ from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+import cache
 import llm
 
 logging.basicConfig(
@@ -195,28 +196,41 @@ async def health() -> dict[str, bool]:
 
 
 async def live_stream(prompt: str) -> AsyncIterator[bytes]:
-    """The real thing: Claude, streamed, one validated line at a time."""
+    """The real thing: Claude, streamed, one validated line at a time.
+
+    Every line is teed to disk as it is sent, so any prompt that works once is
+    replayable forever after.
+    """
     started = time.monotonic()
     shapes = 0
     saw_done = False
+    failure: str | None = None
 
-    try:
-        async for msg in llm.stream_build(prompt):
-            if msg.get("type") == "shape":
-                shapes += 1
-            elif msg.get("type") == "done":
-                saw_done = True
-            yield line(msg)
+    with cache.WriteThrough(prompt) as writer:
+        try:
+            async for msg in llm.stream_build(prompt):
+                raw = line(msg)
+                writer.feed(raw, msg)
 
-    except llm.FirstTokenTimeout as exc:
-        # Step 8.2 turns this into a silent fallback to the nearest cached build.
-        log.warning("first-token timeout: %s", exc)
-        yield error("the model took too long to start")
-        return
+                kind = msg.get("type")
+                if kind == "shape":
+                    shapes += 1
+                elif kind == "done":
+                    saw_done = True
 
-    except Exception as exc:  # noqa: BLE001 - nothing may escape and 500 the stream
-        log.exception("generation failed")
-        yield error(f"generation failed: {type(exc).__name__}")
+                yield raw
+
+        except llm.FirstTokenTimeout as exc:
+            log.warning("first-token timeout: %s", exc)
+            failure = "timeout"
+
+        except Exception as exc:  # noqa: BLE001 - nothing may escape and 500 the stream
+            log.exception("generation failed")
+            failure = type(exc).__name__
+
+    if failure is not None:
+        # Step 8.2 replaces this with a silent fallback to the nearest cached build.
+        yield error(f"generation failed: {failure}")
         return
 
     # The model is told to end with `done`, but it is not trusted to.
@@ -251,3 +265,20 @@ async def build(
 
     source = mock_stream(req.prompt) if use_mock else live_stream(req.prompt)
     return StreamingResponse(source, media_type=NDJSON, headers=STREAM_HEADERS)
+
+
+@app.post("/build/cached/{name}")
+async def build_cached(name: str) -> StreamingResponse:
+    """Replays a known-good build from disk. No model, no network, no surprises.
+
+    This is the break-glass path: `/mc2p cached cottage` in game.
+    """
+    log.info("replay request for %r", name)
+    return StreamingResponse(cache.replay(name), media_type=NDJSON, headers=STREAM_HEADERS)
+
+
+@app.get("/cache")
+async def cache_listing() -> dict[str, object]:
+    """What is guaranteed to work offline right now."""
+    names = cache.list_cached()
+    return {"count": len(names), "builds": names}

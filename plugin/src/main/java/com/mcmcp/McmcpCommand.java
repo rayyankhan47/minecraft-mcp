@@ -13,6 +13,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,6 +49,8 @@ public final class McmcpCommand implements CommandExecutor {
         if (args.length == 0) {
             Chat.error(sender, "Tell me what to build.");
             Chat.detail(sender, "/mc2p a small medieval cottage with a stone chimney");
+            Chat.detail(sender, "/mc2p cached <name>   replay a known-good build");
+            Chat.detail(sender, "/mc2p local           the built-in build, no backend needed");
             return true;
         }
 
@@ -84,13 +88,28 @@ public final class McmcpCommand implements CommandExecutor {
             return true;
         }
 
+        // "/mc2p cached <name>" replays a known-good build from the backend's disk
+        // cache. No model, no network beyond localhost. This is the break-glass path
+        // if something looks wrong on stage.
+        String endpoint = McmcpPlugin.BACKEND_URL + "/build";
+        if (args[0].equalsIgnoreCase("cached")) {
+            if (args.length < 2) {
+                Chat.error(player, "Which one? Try /mc2p cached cottage");
+                plugin.finishBuild(player.getUniqueId(), engine);
+                return true;
+            }
+            String name = String.join("-", java.util.Arrays.copyOfRange(args, 1, args.length));
+            endpoint = McmcpPlugin.BACKEND_URL + "/build/cached/"
+                    + URLEncoder.encode(name, StandardCharsets.UTF_8);
+            Chat.detail(player, "replaying cached build \"" + name + "\"");
+        }
+
         // The engine starts draining immediately, before a single block has arrived.
         // Blocks are placed as they stream in rather than after the response closes —
         // that is the whole point of the design.
         engine.start();
 
-        BuildSession.forPlayer(plugin, engine, player, prompt,
-                        McmcpPlugin.BACKEND_URL + "/build",
+        BuildSession.forPlayer(plugin, engine, player, prompt, endpoint,
                         origin.getBlockX(), origin.getBlockY(), origin.getBlockZ())
                 .startAsync();
 
