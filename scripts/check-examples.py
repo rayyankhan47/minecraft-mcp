@@ -163,7 +163,12 @@ def bad(msg: str) -> None:
     print(f"  \033[31m✗\033[0m {msg}")
 
 
-def audit(title: str, msgs: list[dict]) -> None:
+def note(msg: str) -> None:
+    """Advisory. Worth seeing, not worth failing over."""
+    print(f"  \033[33m•\033[0m {msg}")
+
+
+def audit(title: str, msgs: list[dict], *, strict_shape_count: bool = True) -> None:
     print(f"\n── {title}")
     shapes = [m for m in msgs if m.get("type") == "shape"]
 
@@ -171,10 +176,18 @@ def audit(title: str, msgs: list[dict]) -> None:
     ok("every line passes validate()") if not invalid else bad(
         f"{len(invalid)} line(s) fail validate(): {invalid[:1]}")
 
+    # A worked example that ignores the range the prompt states is a contradiction the
+    # model will happily copy. A cached build is a fixed asset, not an instruction, so
+    # the same mismatch there is only worth noting.
     lo, hi = SHAPE_RANGE
     n = len(shapes)
-    ok(f"{n} shapes (prompt asks for {lo}-{hi})") if lo <= n <= hi else bad(
-        f"{n} shapes, prompt asks for {lo}-{hi} — the example contradicts the instruction")
+    if lo <= n <= hi:
+        ok(f"{n} shapes (prompt asks for {lo}-{hi})")
+    elif strict_shape_count:
+        bad(f"{n} shapes, prompt asks for {lo}-{hi} — the example contradicts the instruction")
+    else:
+        note(f"{n} shapes, below the {lo}-{hi} the prompt asks the model for "
+             f"(seeded from the offline build; step 8.3.1 reseeds from real generations)")
 
     ok("ends with a done line") if msgs and msgs[-1].get("type") == "done" else bad("no trailing done line")
 
@@ -252,13 +265,33 @@ def audit(title: str, msgs: list[dict]) -> None:
         f"{len(islands)} floating piece(s): {islands}")
 
 
+def from_file(path: Path) -> tuple[str, list[dict]]:
+    msgs = []
+    for raw in path.read_text().splitlines():
+        raw = raw.strip()
+        if raw.startswith("{"):
+            try:
+                msgs.append(json.loads(raw))
+            except json.JSONDecodeError:
+                pass
+    return (f"cached build: {path.stem}", msgs)
+
+
 def main() -> int:
     exs = examples()
     if not exs:
         print("no worked examples found in SYSTEM_PROMPT")
         return 1
+
+    # The cached builds are held to the same bar. One of them is what the audience sees
+    # when everything else has failed, which makes it the *least* forgiving place for a
+    # floating lantern.
+    cached = sorted((Path(__file__).resolve().parent.parent / "backend" / "cache").glob("*.ndjson"))
     for title, msgs in exs:
         audit(title, msgs)
+    for path in cached:
+        title, msgs = from_file(path)
+        audit(title, msgs, strict_shape_count=False)
     print(f"\n\033[1m{passed} passed, {failed} failed\033[0m")
     return 1 if failed else 0
 
