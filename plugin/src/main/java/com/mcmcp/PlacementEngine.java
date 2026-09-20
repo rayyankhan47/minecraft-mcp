@@ -46,6 +46,15 @@ public final class PlacementEngine {
     private final AtomicInteger enqueued = new AtomicInteger(0);
 
     private BukkitTask task;
+
+    /**
+     * Run when this engine is cancelled. {@code BuildSession} attaches the teardown of
+     * its HTTP stream here, so cancelling a build actually stops the network read
+     * rather than leaving a thread parked on a socket until the backend happens to
+     * send another line.
+     */
+    private volatile Runnable cancelHook;
+
     private int tickCounter;
     private int placed;
     private int failed;
@@ -84,6 +93,10 @@ public final class PlacementEngine {
         return cancelled.get();
     }
 
+    public void setCancelHook(Runnable hook) {
+        this.cancelHook = hook;
+    }
+
     public int totalEnqueued() {
         return enqueued.get();
     }
@@ -101,10 +114,22 @@ public final class PlacementEngine {
             return;
         }
         queue.clear();
+
         BukkitTask t = task;
         if (t != null) {
             t.cancel();
             task = null;
+        }
+
+        Runnable hook = cancelHook;
+        if (hook != null) {
+            cancelHook = null;
+            try {
+                hook.run();
+            } catch (Throwable ignored) {
+                // Teardown is best-effort; it must never propagate into a caller that
+                // is just trying to start a new build.
+            }
         }
     }
 

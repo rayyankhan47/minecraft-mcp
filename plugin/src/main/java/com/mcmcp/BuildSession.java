@@ -57,6 +57,9 @@ public final class BuildSession {
     private final int oy;
     private final int oz;
 
+    /** Held so {@link #cancel()} can tear the read down from another thread. */
+    private volatile Stream<String> openStream;
+
     private int blocksQueued;
     private int shapesSeen;
     private int badLines;
@@ -88,7 +91,23 @@ public final class BuildSession {
 
     /** Kicks the HTTP read off the main thread. Returns immediately. */
     public void startAsync() {
+        // Cancelling the engine must also stop the read. Closing the stream makes the
+        // blocking iterator throw, which unwinds run() immediately instead of waiting
+        // for a backend that may never send another byte.
+        engine.setCancelHook(this::closeStream);
         Bukkit.getScheduler().runTaskAsynchronously(plugin, this::run);
+    }
+
+    private void closeStream() {
+        Stream<String> s = openStream;
+        openStream = null;
+        if (s != null) {
+            try {
+                s.close();
+            } catch (Throwable ignored) {
+                // Already dead, or dying. Either is fine.
+            }
+        }
     }
 
     // ---- async thread ------------------------------------------------------
@@ -117,6 +136,7 @@ public final class BuildSession {
             }
 
             try (Stream<String> lines = response.body()) {
+                openStream = lines;
                 for (String raw : (Iterable<String>) lines::iterator) {
                     if (engine.isCancelled()) {
                         plugin.getLogger().info("session for " + playerName + " cancelled, stopping read");
@@ -135,7 +155,14 @@ public final class BuildSession {
                     + shapesSeen + " shapes, " + blocksQueued + " blocks, " + badLines + " bad lines");
 
         } catch (Throwable t) {
-            fail(t.getClass().getSimpleName() + ": " + t.getMessage());
+            // A cancelled session tearing down its own socket is expected, not a fault.
+            if (engine.isCancelled()) {
+                plugin.getLogger().info("read for " + playerName + " ended on cancellation");
+            } else {
+                fail(t.getClass().getSimpleName() + ": " + t.getMessage());
+            }
+        } finally {
+            openStream = null;
         }
     }
 

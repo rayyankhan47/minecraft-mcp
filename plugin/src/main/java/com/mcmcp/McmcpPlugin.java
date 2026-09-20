@@ -1,5 +1,8 @@
 package com.mcmcp;
 
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Map;
@@ -18,7 +21,7 @@ import java.util.logging.Logger;
  * safe</b>. World mutation happens on the main server thread and nowhere else;
  * network I/O happens off it and nowhere else.
  */
-public final class McmcpPlugin extends JavaPlugin {
+public final class McmcpPlugin extends JavaPlugin implements Listener {
 
     /** Where the backend lives. Localhost by design — venue wifi cannot break this hop. */
     public static final String BACKEND_URL = "http://127.0.0.1:8000";
@@ -54,6 +57,21 @@ public final class McmcpPlugin extends JavaPlugin {
         activeBuilds.clear();
     }
 
+    /**
+     * Stop building for someone who has left. Without this the engine keeps placing
+     * blocks for an absent player and the session's HTTP read stays open — and on a
+     * reconnect they would be sharing the world with a build they can no longer cancel.
+     */
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        PlacementEngine engine = activeBuilds.remove(event.getPlayer().getUniqueId());
+        if (engine != null) {
+            engine.cancel();
+            getLogger().info("cancelled the in-flight build for " + event.getPlayer().getName()
+                    + " (disconnected)");
+        }
+    }
+
     @Override
     public void onEnable() {
         instance = this;
@@ -61,6 +79,7 @@ public final class McmcpPlugin extends JavaPlugin {
         banner();
 
         registerCommand("mc2p", new McmcpCommand(this));
+        getServer().getPluginManager().registerEvents(this, this);
 
         pingBackend();
 
