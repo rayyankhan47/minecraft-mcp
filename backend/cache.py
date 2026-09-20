@@ -23,7 +23,9 @@ from pathlib import Path
 
 log = logging.getLogger("mcmcp.cache")
 
-CACHE_DIR = Path(__file__).parent / "cache"
+# Overridable so a test run can point at a scratch directory. The demo cache is a
+# demo asset — nothing automated should be able to write into it by accident.
+CACHE_DIR = Path(os.getenv("MCMCP_CACHE_DIR") or Path(__file__).parent / "cache")
 SUFFIX = ".ndjson"
 
 # Pacing for a replayed build. Slow enough to read as generation rather than a dump,
