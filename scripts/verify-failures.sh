@@ -89,16 +89,25 @@ run_case() {
 
 echo "Failure-path testing"
 
+# The expectation regexes below key on SHAPE COUNTS, which are distinctive per chaos
+# mode and identical on every run. They deliberately do not key on warning text.
+#
+# BlockResolver and ShapeExpander both warn *once per name per JVM* — that is correct
+# behaviour (400 identical warnings help nobody), but it means a log-based assertion
+# only holds against a freshly restarted server and silently goes red on the second
+# run. The counts do not have that problem.
+#
+#   mock build = 9 shapes, so anything else also proves we did not get the mock.
 run_case "malformed JSON mid-stream" "mc2p selftest chaos malformed" \
-         "unparseable line|unknown message type|shape line could not be read"
+         "2 shapes, 177 blocks, 2 bad lines"
 run_case "hallucinated block names"  "mc2p selftest chaos badblock" \
-         "unresolvable, substituting|resolved loosely to|unknown blockstate properties"
+         "7 shapes, 567 blocks"
 run_case "oversized build"           "mc2p selftest chaos oversized" \
-         "exceeds the 64-block limit|block limit, ignoring the rest|truncating"
+         "2 shapes, 8000 blocks"
 run_case "backend dies mid-stream"   "mc2p selftest chaos die" \
-         "build failed|stream closed"
+         "build failed"
 run_case "backend returns nothing"   "mc2p selftest chaos empty" \
-         "0 shapes, 0 blocks|build complete: 0 blocks"
+         "0 shapes, 0 blocks"
 
 # --- the real thing: kill the backend process mid-build ----------------------
 echo
