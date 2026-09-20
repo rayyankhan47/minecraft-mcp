@@ -64,3 +64,29 @@ else
 fi
 
 ls -lh "$JAR"
+
+# ---------------------------------------------------------------------------
+# Install the demo server configuration.
+# ---------------------------------------------------------------------------
+echo
+echo "Installing config/server.properties"
+cp "$REPO_ROOT/config/server.properties" "$SERVER_DIR/server.properties"
+
+# Accept the EULA. (Only ever run against a jar we downloaded and checksummed above.)
+printf 'eula=true\n' > "$SERVER_DIR/eula.txt"
+
+# The level type is baked into a world at generation time — changing the property on
+# an existing world does nothing. Track what the current world was generated with and
+# wipe it when that changes, otherwise you silently demo on the wrong terrain.
+want_level_type="$(grep -E '^level-type=' "$SERVER_DIR/server.properties" | cut -d= -f2-)"
+marker="$SERVER_DIR/.world-leveltype"
+have_level_type="$(cat "$marker" 2>/dev/null || echo '<none>')"
+
+if [[ -d "$SERVER_DIR/world" && "$have_level_type" != "$want_level_type" ]]; then
+  echo "  level-type changed ($have_level_type -> $want_level_type) — regenerating world"
+  rm -rf "$SERVER_DIR/world" "$SERVER_DIR/world_nether" "$SERVER_DIR/world_the_end"
+fi
+printf '%s' "$want_level_type" > "$marker"
+
+echo
+echo "Server ready. Start it with:  ./scripts/run-server.sh"
