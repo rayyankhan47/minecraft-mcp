@@ -12,6 +12,14 @@
 #     second run would otherwise stack its cottage on top of the first one's roof.
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
+# These scripts do their own pass/fail accounting, so `set -e` (inherited from env.sh)
+# is actively wrong here: a `grep` that finds nothing is a NEGATIVE ANSWER, not an
+# error, and `var=$(grep ...)` or `grep ... && flag=1` would abort the whole run. That
+# failure mode is silent and timing-dependent — it passes whenever the log line happens
+# to already be there — so it is disabled deliberately rather than papered over with
+# `|| true` at each call site.
+set +e
+
 LOG="$(server_log)"
 
 send() { "$REPO_ROOT/scripts/mc.sh" "$@"; }

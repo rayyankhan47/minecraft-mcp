@@ -59,3 +59,13 @@ wait_for_server_ready() {
   echo "TIMED OUT waiting for the server to report Done after ${timeout}s" >&2
   return 1
 }
+
+# Several verification scripts are meaningless without the backend. Without this check
+# a backend that is simply not running looks exactly like a broken plugin.
+require_backend() {
+  if ! curl -s --max-time 3 http://127.0.0.1:8000/health >/dev/null 2>&1; then
+    echo "FATAL: backend is not responding at http://127.0.0.1:8000" >&2
+    echo "       start it with:  ./scripts/run-backend.sh" >&2
+    exit 1
+  fi
+}

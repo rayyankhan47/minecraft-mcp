@@ -8,6 +8,16 @@
 # a cached build rather than streaming.
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
+# These scripts do their own pass/fail accounting, so `set -e` (inherited from env.sh)
+# is actively wrong here: a `grep` that finds nothing is a NEGATIVE ANSWER, not an
+# error, and `var=$(grep ...)` or `grep ... && flag=1` would abort the whole run. That
+# failure mode is silent and timing-dependent — it passes whenever the log line happens
+# to already be there — so it is disabled deliberately rather than papered over with
+# `|| true` at each call site.
+set +e
+
+require_backend
+
 LOG="$(server_log)"
 send() { "$REPO_ROOT/scripts/mc.sh" "$@"; }
 
@@ -51,11 +61,11 @@ send "say $SNAP"
 for _ in $(seq 1 40); do grep -q "\[Server\] $SNAP" "$LOG" && break; sleep 0.2; done
 
 stream_open=1
-tail -n +"$MARK" "$LOG" | grep -q 'build complete' && stream_open=0
+if tail -n +"$MARK" "$LOG" | grep -q 'build complete'; then stream_open=0; fi
 
 foundation=0; chimney=0
-grep -q "\[Server\] $FT" "$LOG" && foundation=1
-grep -q "\[Server\] $CT" "$LOG" && chimney=1
+if grep -q "\[Server\] $FT" "$LOG"; then foundation=1; fi
+if grep -q "\[Server\] $CT" "$LOG"; then chimney=1; fi
 
 echo
 echo "Snapshot at t≈4s (stream still open: $([[ $stream_open == 1 ]] && echo yes || echo no)):"
@@ -81,7 +91,7 @@ send "execute if block $((OX+7)) $((OY+9)) $((OZ+7)) minecraft:cobblestone run s
 send "say DONE_$FIN"
 for _ in $(seq 1 40); do grep -q "\[Server\] DONE_$FIN" "$LOG" && break; sleep 0.2; done
 
-if grep -q "\[Server\] $FIN\$" "$LOG" || grep -q "\[Server\] $FIN " "$LOG"; then
+if grep -qE "\[Server\] $FIN( |\$)" "$LOG"; then
   echo "  ✓ chimney present after completion"
 else
   echo "  ✗ chimney still missing after completion"
