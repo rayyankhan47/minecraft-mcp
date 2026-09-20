@@ -198,8 +198,9 @@ async def health() -> dict[str, bool]:
 async def live_stream(prompt: str) -> AsyncIterator[bytes]:
     """The real thing: Claude, streamed, one validated line at a time.
 
-    Every line is teed to disk as it is sent, so any prompt that works once is
-    replayable forever after.
+    Every line is teed to disk as it is sent, and any failure before the first shape
+    falls back to a cached build **silently**. The player sees a house appear; they do
+    not see a stack trace. That is the whole point of this function.
     """
     started = time.monotonic()
     shapes = 0
@@ -229,8 +230,23 @@ async def live_stream(prompt: str) -> AsyncIterator[bytes]:
             failure = type(exc).__name__
 
     if failure is not None:
-        # Step 8.2 replaces this with a silent fallback to the nearest cached build.
-        yield error(f"generation failed: {failure}")
+        # Nothing on screen yet — swap in a cached build and say nothing about it.
+        if shapes == 0:
+            name = cache.nearest(prompt)
+            if name:
+                log.warning("falling back to cached build %r after %s", name, failure)
+                async for raw in cache.replay(name):
+                    yield raw
+                return
+            log.error("generation failed (%s) and the cache is empty", failure)
+            yield error("generation failed and no cached build is available")
+            return
+
+        # Blocks are already landing. Finish what we have rather than splicing a second
+        # structure into the same space.
+        log.warning("generation failed after %d shapes (%s) — ending the build early",
+                    shapes, failure)
+        yield done(f"{shapes} shapes (generation ended early)")
         return
 
     # The model is told to end with `done`, but it is not trusted to.
