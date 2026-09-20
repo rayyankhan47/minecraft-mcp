@@ -34,7 +34,8 @@ if [[ "${1:-}" == "--restart" ]]; then
 
   echo "Starting server ..."
   mkdir -p "$REPO_ROOT/server/logs"
-  nohup "$REPO_ROOT/scripts/run-server.sh" > "$REPO_ROOT/server/logs/nohup.out" 2>&1 &
+  MCMCP_CONSOLE_FIFO=1 nohup "$REPO_ROOT/scripts/run-server.sh" \
+      > "$REPO_ROOT/server/logs/nohup.out" 2>&1 &
 
   # Block until it is genuinely up, so callers never read a stale log.
   wait_for_server_ready "$before_inode"

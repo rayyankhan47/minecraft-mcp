@@ -22,4 +22,20 @@ echo
 # No -Dcom.mojang.eula.agree: setup-server.sh already writes eula.txt, and the flag
 # makes Paper print three ERROR-level nag lines at every boot. The console is our only
 # debugging surface during a demo — it should not cry wolf.
-exec java -Xms2G -Xmx2G -XX:+UseG1GC -jar "$JAR" --nogui
+JAVA_ARGS=(-Xms2G -Xmx2G -XX:+UseG1GC -jar "$JAR" --nogui)
+
+if [[ "${MCMCP_CONSOLE_FIFO:-0}" == "1" ]]; then
+  # Detached mode: feed the server's stdin from a named pipe so commands can be sent
+  # to the console without a terminal attached (see scripts/mc.sh). Opening the pipe
+  # read-write on fd 3 pins it open — otherwise the server sees EOF the instant the
+  # first writer disconnects and shuts itself down.
+  FIFO="$SERVER_DIR/console.in"
+  rm -f "$FIFO"
+  mkfifo "$FIFO"
+  exec 3<>"$FIFO"
+  echo "Console pipe: $FIFO"
+  exec java "${JAVA_ARGS[@]}" <&3
+fi
+
+# Interactive mode: stdin is your terminal, so you can type `stop` as usual.
+exec java "${JAVA_ARGS[@]}"
