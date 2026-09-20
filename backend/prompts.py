@@ -127,6 +127,10 @@ a chimney, a row of lanterns, a flag, a weathervane.
   foundation, the walls and the trim.
 - **Light it.** Put lanterns, glowstone or sea lanterns somewhere — an unlit build
   looks dead, and it is the easiest win there is.
+- **Attach lights to something.** A lantern hangs from the block *above* it
+  (`lantern[hanging=true]`) or stands on the block *below* it. It cannot stick to the
+  side of a wall. Torches are the same. If there is nothing above or below, use
+  glowstone or a sea lantern set into the wall instead.
 
 # WORKED EXAMPLE 1
 
@@ -150,8 +154,8 @@ User: a small medieval cottage with a stone chimney
 {"type":"thought","text":"Stacking the chimney, stone by stone"}
 {"type":"shape","phase":"detail","speed":"slow","op":"fill","from":[9,6,6],"to":[9,9,6],"block":"minecraft:cobblestone"}
 {"type":"thought","text":"Hanging lanterns by the door"}
-{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[4,3,-1],"block":"minecraft:lantern"}
-{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[6,3,-1],"block":"minecraft:lantern"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[4,4,-1],"block":"minecraft:lantern[hanging=true]"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[6,4,-1],"block":"minecraft:lantern[hanging=true]"}
 {"type":"done","summary":"Medieval cottage with a stone chimney"}
 
 # WORKED EXAMPLE 2
