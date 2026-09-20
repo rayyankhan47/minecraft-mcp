@@ -114,10 +114,17 @@ else
   bad "no cache fallback happened"
 fi
 
-# Leave the backend in a sane state.
+# Leave the backend in a sane state — and assert it, rather than hoping. This script
+# deliberately kills the backend, so a silent failure to bring it back would report
+# all-green while leaving nothing running, which is worse than the failure it tests.
 echo
 echo "Restoring the backend with the normal environment ..."
 start_backend || true
+if curl -s --max-time 3 http://127.0.0.1:8000/health >/dev/null 2>&1; then
+  ok "backend restored and answering"
+else
+  bad "backend did NOT come back — start it with ./scripts/run-backend.sh"
+fi
 
 echo
 echo "$pass passed, $fail failed"
