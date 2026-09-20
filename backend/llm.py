@@ -25,18 +25,19 @@ load_dotenv()
 
 log = logging.getLogger("mcmcp.llm")
 
-# Claude Sonnet 5. Measured on the three bake-off prompts (scripts/bakeoff.py):
+# Claude Haiku 4.5. Measured on the three bake-off prompts (scripts/bakeoff.py):
 #
 #              first shape    total     shapes
 #   Haiku 4.5   0.69-0.95s   3.5-5.1s   11-16
 #   Sonnet 5     2.1-2.4s     ~10.5s    18-20
 #
-# Sonnet is ~3x slower to the first shape but still well inside the 8-second budget,
-# and it builds visibly more detailed structures. Haiku remains the safe choice if the
-# first-block number ever matters more than how the build looks:
+# Sonnet builds more detailed structures and is still inside the 8-second budget, but
+# it doubles total build time and one bake-off prompt produced no token at all within
+# 12s. Haiku never missed. Time-to-first-block is success criterion #1, so Haiku wins.
+# To try the bigger model for one session, no code change needed:
 #
-#   MCMCP_MODEL=claude-haiku-4-5 ./scripts/run-backend.sh
-MODEL = os.getenv("MCMCP_MODEL", "claude-sonnet-5")
+#   MCMCP_MODEL=claude-sonnet-5 MCMCP_FIRST_TOKEN_TIMEOUT=20 ./scripts/run-backend.sh
+MODEL = os.getenv("MCMCP_MODEL", "claude-haiku-4-5")
 
 # A full build is 15-25 NDJSON lines; 8000 leaves plenty of headroom without
 # encouraging the model to keep going.
@@ -46,11 +47,11 @@ MAX_TOKENS = int(os.getenv("MCMCP_MAX_TOKENS", "8000"))
 # and the caller falls back to cache — a cached build on screen beats a live one that
 # never arrives.
 #
-# 15s, not higher. One Sonnet bake-off prompt produced no token at all within 12s, which
-# is why this is above the old 12 — but the budget is deliberately not generous. A long
-# ceiling does not rescue a stalled request, it just makes the audience stare at nothing
-# for longer before the cached build appears.
-FIRST_TOKEN_TIMEOUT = float(os.getenv("MCMCP_FIRST_TOKEN_TIMEOUT", "15"))
+# 12s is already generous for Haiku, which reached its first shape in under a second on
+# every bake-off prompt. The ceiling is deliberately not larger: it does not rescue a
+# stalled request, it only decides how long the audience stares at nothing before the
+# cached build appears.
+FIRST_TOKEN_TIMEOUT = float(os.getenv("MCMCP_FIRST_TOKEN_TIMEOUT", "12"))
 
 
 class FirstTokenTimeout(Exception):
