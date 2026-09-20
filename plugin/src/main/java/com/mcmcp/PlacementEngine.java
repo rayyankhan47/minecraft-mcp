@@ -30,7 +30,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class PlacementEngine {
 
     private final McmcpPlugin plugin;
+
+    /**
+     * Who to report to. Null for a console-driven build, which is how the pipeline is
+     * tested without a client attached — the engine still runs, it just has nobody to
+     * talk to.
+     */
     private final UUID playerId;
+
     private final World world;
 
     private final ConcurrentLinkedQueue<BlockPlacement> queue = new ConcurrentLinkedQueue<>();
@@ -47,11 +54,15 @@ public final class PlacementEngine {
     private final long commandNanos;
     private long firstBlockNanos = -1L;
 
-    public PlacementEngine(McmcpPlugin plugin, Player player, long commandNanos) {
+    public PlacementEngine(McmcpPlugin plugin, World world, UUID playerId, long commandNanos) {
         this.plugin = plugin;
-        this.playerId = player.getUniqueId();
-        this.world = player.getWorld();
+        this.world = world;
+        this.playerId = playerId;
         this.commandNanos = commandNanos;
+    }
+
+    public static PlacementEngine forPlayer(McmcpPlugin plugin, Player player, long commandNanos) {
+        return new PlacementEngine(plugin, player.getWorld(), player.getUniqueId(), commandNanos);
     }
 
     // ---- producer side (async thread) --------------------------------------
@@ -167,13 +178,15 @@ public final class PlacementEngine {
         long firstMs = firstBlockNanos < 0 ? -1 : (firstBlockNanos - commandNanos) / 1_000_000L;
 
         cancel();
-        plugin.finishBuild(playerId, this);
+        if (playerId != null) {
+            plugin.finishBuild(playerId, this);
+        }
 
         plugin.getLogger().info(String.format(
                 "build complete: %d blocks placed, %d failed, first block %d ms, total %d ms",
                 placed, failed, firstMs, totalMs));
 
-        Player player = Bukkit.getPlayer(playerId);
+        Player player = playerId == null ? null : Bukkit.getPlayer(playerId);
         if (player != null && player.isOnline()) {
             Chat.success(player, "Done — " + placed + " blocks in "
                     + String.format("%.1f", totalMs / 1000.0) + "s");

@@ -56,6 +56,9 @@ public final class ShapeExpander {
                 case "hollow" -> box(out, shape, data, replace, ox, oy, oz, Fill.SHELL);
                 case "walls" -> box(out, shape, data, replace, ox, oy, oz, Fill.WALLS);
                 case "set" -> single(out, shape, data, replace, ox, oy, oz);
+                case "line" -> line(out, shape, data, replace, ox, oy, oz);
+                case "sphere" -> sphere(out, shape, data, replace, ox, oy, oz);
+                case "cylinder" -> cylinder(out, shape, data, replace, ox, oy, oz);
                 default -> warn("unknown op \"" + shape.op + "\", skipping shape");
             }
         } catch (Throwable t) {
@@ -129,6 +132,114 @@ public final class ShapeExpander {
             return;
         }
         add(out, shape.pos[0] + ox, shape.pos[1] + oy, shape.pos[2] + oz, data, shape, replace);
+    }
+
+    /** Straight 3D line between two points, by simple DDA. */
+    private static void line(List<BlockPlacement> out, Shape shape, BlockData data, BlockData replace,
+                             int ox, int oy, int oz) {
+        if (shape.from == null || shape.to == null) {
+            warn("line needs both \"from\" and \"to\", skipping");
+            return;
+        }
+
+        int dx = shape.to[0] - shape.from[0];
+        int dy = shape.to[1] - shape.from[1];
+        int dz = shape.to[2] - shape.from[2];
+
+        if (tooBig("line", Math.abs(dx) + 1, Math.abs(dy) + 1, Math.abs(dz) + 1)) {
+            return;
+        }
+
+        int steps = Math.max(Math.abs(dx), Math.max(Math.abs(dy), Math.abs(dz)));
+        if (steps == 0) {
+            add(out, shape.from[0] + ox, shape.from[1] + oy, shape.from[2] + oz, data, shape, replace);
+            return;
+        }
+
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / steps;
+            int x = shape.from[0] + (int) Math.round(dx * t);
+            int y = shape.from[1] + (int) Math.round(dy * t);
+            int z = shape.from[2] + (int) Math.round(dz * t);
+            if (!add(out, x + ox, y + oy, z + oz, data, shape, replace)) {
+                return;
+            }
+        }
+    }
+
+    private static void sphere(List<BlockPlacement> out, Shape shape, BlockData data, BlockData replace,
+                               int ox, int oy, int oz) {
+        if (shape.center == null || shape.radius < 0) {
+            warn("sphere needs \"center\" and \"radius\", skipping");
+            return;
+        }
+        int r = shape.radius;
+        int span = 2 * r + 1;
+        if (tooBig("sphere", span, span, span)) {
+            return;
+        }
+
+        // Testing against (r + 0.5)^2 rather than r^2 gives a visibly rounder shell —
+        // the half-block offset accounts for testing block centres.
+        double outer = (r + 0.5) * (r + 0.5);
+        double inner = (r - 0.5) * (r - 0.5);
+
+        for (int dy = -r; dy <= r; dy++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    double d2 = (double) dx * dx + (double) dy * dy + (double) dz * dz;
+                    if (d2 > outer) {
+                        continue;
+                    }
+                    if (shape.hollow && d2 < inner) {
+                        continue;
+                    }
+                    if (!add(out, shape.center[0] + dx + ox, shape.center[1] + dy + oy,
+                            shape.center[2] + dz + oz, data, shape, replace)) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    /** Vertical cylinder. {@code center} is the centre of its base. */
+    private static void cylinder(List<BlockPlacement> out, Shape shape, BlockData data, BlockData replace,
+                                 int ox, int oy, int oz) {
+        if (shape.center == null || shape.radius < 0) {
+            warn("cylinder needs \"center\" and \"radius\", skipping");
+            return;
+        }
+        int r = shape.radius;
+        int h = Math.max(1, shape.height);
+        int span = 2 * r + 1;
+        if (tooBig("cylinder", span, h, span)) {
+            return;
+        }
+
+        double outer = (r + 0.5) * (r + 0.5);
+        double inner = (r - 0.5) * (r - 0.5);
+
+        for (int y = 0; y < h; y++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    double d2 = (double) dx * dx + (double) dz * dz;
+                    if (d2 > outer) {
+                        continue;
+                    }
+                    // A hollow cylinder keeps its cap and floor; only the barrel is open.
+                    boolean interior = d2 < inner;
+                    boolean endCap = (y == 0 || y == h - 1);
+                    if (shape.hollow && interior && !endCap) {
+                        continue;
+                    }
+                    if (!add(out, shape.center[0] + dx + ox, shape.center[1] + y + oy,
+                            shape.center[2] + dz + oz, data, shape, replace)) {
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     /**

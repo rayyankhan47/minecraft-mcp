@@ -1,6 +1,10 @@
 package com.mcmcp;
 
+import com.mcmcp.model.BlockPlacement;
+import com.mcmcp.model.Shape;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -8,6 +12,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Handler for {@code /mc2p <description>}.
@@ -35,15 +42,22 @@ public final class McmcpCommand implements CommandExecutor {
                              @NotNull String label,
                              @NotNull String[] args) {
 
-        // A build needs a location and a facing, so it needs a real player.
-        if (!(sender instanceof Player player)) {
-            Chat.error(sender, "/mc2p has to be run by a player — it builds where you are standing.");
+        long commandNanos = System.nanoTime();
+
+        if (args.length == 0) {
+            Chat.error(sender, "Tell me what to build.");
+            Chat.detail(sender, "/mc2p a small medieval cottage with a stone chimney");
             return true;
         }
 
-        if (args.length == 0) {
-            Chat.error(player, "Tell me what to build.");
-            Chat.detail(player, "/mc2p a small medieval cottage with a stone chimney");
+        // Console-only escape hatch: runs the hardcoded build at a fixed origin so the
+        // placement pipeline can be exercised with no client attached. Not for players.
+        if (!(sender instanceof Player) && args[0].equalsIgnoreCase("selftest")) {
+            return selftest(sender, commandNanos);
+        }
+
+        if (!(sender instanceof Player player)) {
+            Chat.error(sender, "/mc2p has to be run by a player — it builds where you are standing.");
             return true;
         }
 
@@ -53,11 +67,51 @@ public final class McmcpCommand implements CommandExecutor {
         plugin.getLogger().info("/mc2p from " + player.getName() + ": \"" + prompt + "\""
                 + "  origin=" + format(origin));
 
-        // Step 2 checkpoint: echo only. Steps 3 and 4 replace this with a real build.
         Chat.info(player, "Building: " + prompt);
-        Chat.detail(player, "origin " + format(origin) + "  facing " + player.getFacing());
 
+        // Step 3 checkpoint: the prompt is ignored and a hardcoded cottage is built.
+        // Step 4 replaces this with the streamed response from the backend.
+        PlacementEngine engine = PlacementEngine.forPlayer(plugin, player, commandNanos);
+        plugin.registerBuild(player.getUniqueId(), engine);
+
+        DemoBuild.thoughts().forEach(t -> Chat.thought(player, t));
+
+        int queued = enqueueAll(engine, DemoBuild.cottage(), origin);
+        Chat.detail(player, queued + " blocks queued at " + format(origin));
+
+        engine.start();
+        engine.signalStreamDone();
         return true;
+    }
+
+    /** Builds the hardcoded cottage near world spawn, reporting only to the console. */
+    private boolean selftest(CommandSender sender, long commandNanos) {
+        World world = Bukkit.getWorlds().get(0);
+        Location origin = world.getSpawnLocation().clone().add(10, 0, 10);
+        origin.setY(world.getHighestBlockYAt(origin) + 1);
+
+        plugin.getLogger().info("selftest: building at " + format(origin));
+
+        PlacementEngine engine = new PlacementEngine(plugin, world, null, commandNanos);
+        int queued = enqueueAll(engine, DemoBuild.cottage(), origin);
+        engine.start();
+        engine.signalStreamDone();
+
+        sender.sendMessage("selftest: queued " + queued + " blocks at " + format(origin));
+        plugin.getLogger().info("selftest: queued " + queued + " blocks at " + format(origin));
+        return true;
+    }
+
+    /** Expands every shape against the origin and hands the blocks to the engine. */
+    private int enqueueAll(PlacementEngine engine, List<Shape> shapes, Location origin) {
+        int total = 0;
+        for (Shape shape : shapes) {
+            List<BlockPlacement> placements = ShapeExpander.expand(
+                    shape, origin.getBlockX(), origin.getBlockY(), origin.getBlockZ());
+            engine.enqueue(placements);
+            total += placements.size();
+        }
+        return total;
     }
 
     /**

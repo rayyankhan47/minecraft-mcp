@@ -1,0 +1,6 @@
+# Backend dependencies. Deliberately small.
+fastapi==0.120.4
+uvicorn[standard]==0.38.0
+anthropic==0.75.0
+httpx==0.28.1
+python-dotenv==1.1.1
