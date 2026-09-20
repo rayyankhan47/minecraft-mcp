@@ -1,0 +1,15 @@
+{"type":"thought","text":"Sketching a giant smiley face in the clouds"}
+{"type":"shape","phase":"foundation","speed":"instant","op":"sphere","center":[0,20,0],"radius":15,"block":"minecraft:white_concrete"}
+{"type":"thought","text":"Carving out the left eye"}
+{"type":"shape","phase":"structure","speed":"fast","op":"sphere","center":[-6,23,8],"radius":2,"block":"minecraft:air"}
+{"type":"thought","text":"Carving out the right eye"}
+{"type":"shape","phase":"structure","speed":"fast","op":"sphere","center":[6,23,8],"radius":2,"block":"minecraft:air"}
+{"type":"thought","text":"Cutting the smile curve"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-8,16,8],"to":[8,18,8],"block":"minecraft:air"}
+{"type":"thought","text":"Filling the left eye with yellow glow"}
+{"type":"shape","phase":"detail","speed":"slow","op":"sphere","center":[-6,23,8],"radius":1,"block":"minecraft:yellow_concrete"}
+{"type":"thought","text":"Filling the right eye with yellow glow"}
+{"type":"shape","phase":"detail","speed":"slow","op":"sphere","center":[6,23,8],"radius":1,"block":"minecraft:yellow_concrete"}
+{"type":"thought","text":"Lighting up the smile with lanterns"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[0,17,8],"block":"minecraft:glowstone"}
+{"type":"done","summary":"Giant smiley face in the sky, 30 blocks wide"}

@@ -91,7 +91,11 @@ while read -r l; do [[ -z "$l" ]] && continue; jq -e . >/dev/null 2>&1 <<<"$l" |
 echo
 echo "── what the SDK actually sent"
 REQ="$(curl -s -m 5 "http://127.0.0.1:$MOCK_PORT/requests")"
-grep -q '"model":"claude-haiku-4-5"' <<<"$REQ" && ok "model is claude-haiku-4-5" || bad "wrong model: $(jq -r '.requests[0].model' <<<"$REQ" 2>/dev/null)"
+# Read the expected model from llm.py rather than repeating the string here: a test
+# that hardcodes the constant it is checking stops being a test the moment it drifts.
+WANT_MODEL="$("$PY" -c "import sys; sys.path.insert(0,'$REPO_ROOT/backend'); import llm; print(llm.MODEL)")"
+grep -q "\"model\":\"$WANT_MODEL\"" <<<"$REQ" && ok "model is $WANT_MODEL" \
+  || bad "expected $WANT_MODEL, sent $(jq -r '.requests[0].model' <<<"$REQ" 2>/dev/null)"
 grep -q '"system_cache_control":true' <<<"$REQ" && ok "prompt caching breakpoint present on system prompt" || bad "cache_control missing — every build pays full prompt price"
 grep -q '"stream":true' <<<"$REQ" && ok "request is streaming" || bad "request was not streaming"
 grep -q '"has_thinking":false' <<<"$REQ" && ok "no thinking block (latency)" || bad "thinking enabled — costs first-token time"

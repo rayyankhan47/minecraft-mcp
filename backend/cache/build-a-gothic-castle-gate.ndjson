@@ -1,0 +1,27 @@
+{"type":"thought","text":"Laying the stone foundation for the gatehouse"}
+{"type":"shape","phase":"foundation","speed":"instant","op":"fill","from":[-8,0,-2],"to":[8,0,6],"block":"minecraft:stone_bricks"}
+{"type":"thought","text":"Raising the twin towers"}
+{"type":"shape","phase":"structure","speed":"fast","op":"cylinder","center":[-6,1,-2],"radius":3,"height":12,"block":"minecraft:stone_bricks","hollow":true}
+{"type":"shape","phase":"structure","speed":"fast","op":"cylinder","center":[6,1,-2],"radius":3,"height":12,"block":"minecraft:stone_bricks","hollow":true}
+{"type":"thought","text":"Building the central archway and gatehouse"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[-3,1,-2],"to":[3,1,6],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[-3,2,-2],"to":[3,7,6],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[-2,2,-2],"to":[2,6,6],"block":"minecraft:air","replace":"minecraft:stone_bricks"}
+{"type":"thought","text":"Carving the grand arched gate"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-1,1,5],"to":[1,4,5],"block":"minecraft:air"}
+{"type":"thought","text":"Adding Gothic arched ceilings"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[-3,7,-2],"to":[3,7,6],"block":"minecraft:dark_oak_slab"}
+{"type":"thought","text":"Building battlemented tops on the towers"}
+{"type":"shape","phase":"roof","speed":"fast","op":"cylinder","center":[-6,13,-2],"radius":4,"height":1,"block":"minecraft:stone_brick_slab"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[-7,14,-3],"to":[-5,14,-1],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[-7,14,0],"to":[-5,14,2],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"cylinder","center":[6,13,-2],"radius":4,"height":1,"block":"minecraft:stone_brick_slab"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[5,14,-3],"to":[7,14,-1],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[5,14,0],"to":[7,14,2],"block":"minecraft:stone_bricks"}
+{"type":"thought","text":"Adding Gothic pointed spires"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[-6,14,-2],"block":"minecraft:dark_oak_log[axis=y]"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[6,14,-2],"block":"minecraft:dark_oak_log[axis=y]"}
+{"type":"thought","text":"Lighting the gateway with torch flames"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[-3,5,-2],"block":"minecraft:torch"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[3,5,-2],"block":"minecraft:torch"}
+{"type":"done","summary":"Gothic castle gate with twin towers, 14 blocks tall"}

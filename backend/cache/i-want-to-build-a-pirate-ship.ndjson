@@ -1,0 +1,30 @@
+{"type":"thought","text":"Laying the hull foundation"}
+{"type":"shape","phase":"foundation","speed":"instant","op":"fill","from":[0,0,0],"to":[20,0,8],"block":"minecraft:dark_oak_planks"}
+{"type":"thought","text":"Raising the wooden hull walls"}
+{"type":"shape","phase":"structure","speed":"fast","op":"walls","from":[1,1,1],"to":[19,4,7],"block":"minecraft:dark_oak_planks"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[0,1,0],"to":[0,4,8],"block":"minecraft:dark_oak_planks"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[20,1,0],"to":[20,4,8],"block":"minecraft:dark_oak_planks"}
+{"type":"thought","text":"Building the main deck"}
+{"type":"shape","phase":"structure","speed":"instant","op":"fill","from":[1,5,1],"to":[19,5,7],"block":"minecraft:dark_oak_planks"}
+{"type":"thought","text":"Constructing the captain's cabin"}
+{"type":"shape","phase":"structure","speed":"fast","op":"walls","from":[14,6,2],"to":[19,8,6],"block":"minecraft:dark_oak_planks"}
+{"type":"shape","phase":"structure","speed":"instant","op":"fill","from":[14,6,2],"to":[19,6,6],"block":"minecraft:dark_oak_planks"}
+{"type":"thought","text":"Cutting cabin door and windows"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[14,6,4],"to":[14,7,4],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"set","pos":[16,7,2],"block":"minecraft:glass_pane"}
+{"type":"shape","phase":"openings","speed":"fast","op":"set","pos":[18,7,2],"block":"minecraft:glass_pane"}
+{"type":"thought","text":"Raising the mast"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[10,5,4],"to":[10,14,4],"block":"minecraft:oak_log[axis=y]"}
+{"type":"thought","text":"Rigging the sails"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[9,10,4],"to":[11,12,7],"block":"minecraft:white_wool"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[9,8,3],"to":[11,10,4],"block":"minecraft:white_wool"}
+{"type":"thought","text":"Building the bow figurehead"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[0,3,3],"to":[0,6,5],"block":"minecraft:dark_oak_planks"}
+{"type":"thought","text":"Adding the crow's nest"}
+{"type":"shape","phase":"detail","speed":"fast","op":"hollow","from":[9,13,3],"to":[11,14,5],"block":"minecraft:dark_oak_planks"}
+{"type":"thought","text":"Lighting the ship with lanterns"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[10,15,4],"block":"minecraft:lantern"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[5,6,4],"block":"minecraft:lantern[hanging=true]"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[15,9,4],"block":"minecraft:lantern[hanging=true]"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[2,5,2],"block":"minecraft:lantern[hanging=true]"}
+{"type":"done","summary":"Pirate ship with masts, sails, and crow's nest, 680 blocks"}

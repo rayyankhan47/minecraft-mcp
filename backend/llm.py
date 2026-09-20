@@ -25,10 +25,18 @@ load_dotenv()
 
 log = logging.getLogger("mcmcp.llm")
 
-# Claude Haiku 4.5. Chosen for time-to-first-token, which is success criterion #1 —
-# the player must see a block within 8 seconds. A more capable model builds a nicer
-# cottage and loses the demo.
-MODEL = os.getenv("MCMCP_MODEL", "claude-haiku-4-5")
+# Claude Sonnet 5. Measured on the three bake-off prompts (scripts/bakeoff.py):
+#
+#              first shape    total     shapes
+#   Haiku 4.5   0.69-0.95s   3.5-5.1s   11-16
+#   Sonnet 5     2.1-2.4s     ~10.5s    18-20
+#
+# Sonnet is ~3x slower to the first shape but still well inside the 8-second budget,
+# and it builds visibly more detailed structures. Haiku remains the safe choice if the
+# first-block number ever matters more than how the build looks:
+#
+#   MCMCP_MODEL=claude-haiku-4-5 ./scripts/run-backend.sh
+MODEL = os.getenv("MCMCP_MODEL", "claude-sonnet-5")
 
 # A full build is 15-25 NDJSON lines; 8000 leaves plenty of headroom without
 # encouraging the model to keep going.
@@ -37,7 +45,12 @@ MAX_TOKENS = int(os.getenv("MCMCP_MAX_TOKENS", "8000"))
 # Hard ceiling on time to first token. If this fires we give up on the model entirely
 # and the caller falls back to cache — a cached build on screen beats a live one that
 # never arrives.
-FIRST_TOKEN_TIMEOUT = float(os.getenv("MCMCP_FIRST_TOKEN_TIMEOUT", "12"))
+#
+# 15s, not higher. One Sonnet bake-off prompt produced no token at all within 12s, which
+# is why this is above the old 12 — but the budget is deliberately not generous. A long
+# ceiling does not rescue a stalled request, it just makes the audience stare at nothing
+# for longer before the cached build appears.
+FIRST_TOKEN_TIMEOUT = float(os.getenv("MCMCP_FIRST_TOKEN_TIMEOUT", "15"))
 
 
 class FirstTokenTimeout(Exception):

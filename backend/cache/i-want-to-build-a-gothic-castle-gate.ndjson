@@ -1,0 +1,30 @@
+{"type":"thought","text":"Laying a stone foundation for the gatehouse"}
+{"type":"shape","phase":"foundation","speed":"instant","op":"fill","from":[-8,0,-2],"to":[8,0,6],"block":"minecraft:stone_bricks"}
+{"type":"thought","text":"Raising the twin towers"}
+{"type":"shape","phase":"structure","speed":"fast","op":"cylinder","center":[-6,1,2],"radius":3,"height":12,"block":"minecraft:stone_bricks","hollow":true}
+{"type":"shape","phase":"structure","speed":"fast","op":"cylinder","center":[6,1,2],"radius":3,"height":12,"block":"minecraft:stone_bricks","hollow":true}
+{"type":"thought","text":"Building the central gatehouse wall"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[-2,1,0],"to":[2,11,2],"block":"minecraft:stone_bricks"}
+{"type":"thought","text":"Carving the main gate arch"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-1,1,0],"to":[1,8,0],"block":"minecraft:air"}
+{"type":"thought","text":"Cutting arrow slits in the towers"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-6,5,5],"to":[-6,7,5],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[6,5,5],"to":[6,7,5],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-9,5,2],"to":[-9,7,2],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[9,5,2],"to":[9,7,2],"block":"minecraft:air"}
+{"type":"thought","text":"Topping the towers with crenellations"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[-7,13,-1],"to":[-5,13,5],"block":"minecraft:stone_brick_slab"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[5,13,-1],"to":[7,13,5],"block":"minecraft:stone_brick_slab"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[-7,14,-1],"to":[-7,14,5],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[-5,14,-1],"to":[-5,14,5],"block":"minecraft:air"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[5,14,-1],"to":[5,14,5],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[7,14,-1],"to":[7,14,5],"block":"minecraft:stone_bricks"}
+{"type":"thought","text":"Adding a crenellated roof over the gate"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[-2,12,-1],"to":[2,12,3],"block":"minecraft:dark_oak_planks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[-3,13,-1],"to":[3,13,3],"block":"minecraft:stone_brick_slab"}
+{"type":"thought","text":"Placing torches and banners for detail"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[-6,13,2],"block":"minecraft:torch"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[6,13,2],"block":"minecraft:torch"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[-2,12,-1],"block":"minecraft:torch"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[2,12,-1],"block":"minecraft:torch"}
+{"type":"done","summary":"Gothic castle gate with twin towers and crenellations, 13 blocks tall"}

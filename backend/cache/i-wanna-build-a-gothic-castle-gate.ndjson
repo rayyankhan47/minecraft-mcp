@@ -1,0 +1,32 @@
+{"type":"thought","text":"Laying the stone foundation for the gatehouse"}
+{"type":"shape","phase":"foundation","speed":"instant","op":"fill","from":[-8,0,-2],"to":[8,0,6],"block":"minecraft:stone_bricks"}
+{"type":"thought","text":"Raising the twin towers flanking the gate"}
+{"type":"shape","phase":"structure","speed":"fast","op":"hollow","from":[-8,1,-2],"to":[-5,12,-2],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"structure","speed":"fast","op":"hollow","from":[5,1,-2],"to":[8,12,-2],"block":"minecraft:stone_bricks"}
+{"type":"thought","text":"Building the central gatehouse archway"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[-3,1,-2],"to":[3,8,-2],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"structure","speed":"fast","op":"walls","from":[-3,1,0],"to":[3,8,4],"block":"minecraft:stone_bricks"}
+{"type":"thought","text":"Carving the grand pointed arch opening"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-2,2,-2],"to":[2,2,-2],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-2,3,-2],"to":[2,3,-2],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-2,4,-2],"to":[2,4,-2],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-1,5,-2],"to":[1,5,-2],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-1,6,-2],"to":[1,6,-2],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[0,7,-2],"to":[0,7,-2],"block":"minecraft:air"}
+{"type":"thought","text":"Cutting passages through the gatehouse"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-2,1,0],"to":[2,4,3],"block":"minecraft:air"}
+{"type":"thought","text":"Adding crenellations to the tower tops"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[-8,13,-2],"to":[-5,13,-2],"block":"minecraft:stone_brick_slab"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[5,13,-2],"to":[8,13,-2],"block":"minecraft:stone_brick_slab"}
+{"type":"shape","phase":"roof","speed":"fast","op":"set","pos":[-8,14,-2],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"set","pos":[-6,14,-2],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"set","pos":[5,14,-2],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"set","pos":[7,14,-2],"block":"minecraft:stone_bricks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[-3,9,-2],"to":[3,9,-2],"block":"minecraft:stone_brick_slab"}
+{"type":"thought","text":"Placing iron bars on the gatehouse windows"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[-2,5,1],"block":"minecraft:iron_bars"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[0,5,1],"block":"minecraft:iron_bars"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[2,5,1],"block":"minecraft:iron_bars"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[-8,10,-2],"block":"minecraft:soul_lantern"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[8,10,-2],"block":"minecraft:soul_lantern"}
+{"type":"done","summary":"Gothic castle gate with twin towers and iron-barred gatehouse"}

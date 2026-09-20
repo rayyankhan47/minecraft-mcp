@@ -1,0 +1,27 @@
+{"type":"thought","text":"Laying a wooden foundation"}
+{"type":"shape","phase":"foundation","speed":"instant","op":"fill","from":[0,0,0],"to":[8,0,6],"block":"minecraft:spruce_planks"}
+{"type":"thought","text":"Raising the walls with warm oak"}
+{"type":"shape","phase":"structure","speed":"fast","op":"walls","from":[0,1,0],"to":[8,4,6],"block":"minecraft:oak_planks"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[0,1,0],"to":[0,4,0],"block":"minecraft:oak_log[axis=y]"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[8,1,0],"to":[8,4,0],"block":"minecraft:oak_log[axis=y]"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[0,1,6],"to":[0,4,6],"block":"minecraft:oak_log[axis=y]"}
+{"type":"shape","phase":"structure","speed":"fast","op":"fill","from":[8,1,6],"to":[8,4,6],"block":"minecraft:oak_log[axis=y]"}
+{"type":"thought","text":"Framing a pitched roof"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[0,5,0],"to":[8,5,6],"block":"minecraft:dark_oak_planks"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[1,6,1],"to":[7,6,5],"block":"minecraft:dark_oak_stairs[facing=south,half=bottom]"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[1,6,5],"to":[7,6,1],"block":"minecraft:dark_oak_stairs[facing=north,half=bottom]"}
+{"type":"shape","phase":"roof","speed":"fast","op":"fill","from":[2,7,2],"to":[6,7,4],"block":"minecraft:dark_oak_planks"}
+{"type":"thought","text":"Cutting the front door"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[4,1,0],"to":[4,3,0],"block":"minecraft:air"}
+{"type":"shape","phase":"openings","speed":"fast","op":"set","pos":[4,1,0],"block":"minecraft:oak_door[facing=north,half=lower]"}
+{"type":"shape","phase":"openings","speed":"fast","op":"set","pos":[4,2,0],"block":"minecraft:oak_door[facing=north,half=upper]"}
+{"type":"thought","text":"Adding cute windows"}
+{"type":"shape","phase":"openings","speed":"fast","op":"set","pos":[2,2,0],"block":"minecraft:glass_pane"}
+{"type":"shape","phase":"openings","speed":"fast","op":"set","pos":[6,2,0],"block":"minecraft:glass_pane"}
+{"type":"shape","phase":"openings","speed":"fast","op":"set","pos":[1,2,3],"block":"minecraft:glass_pane"}
+{"type":"shape","phase":"openings","speed":"fast","op":"set","pos":[7,2,3],"block":"minecraft:glass_pane"}
+{"type":"thought","text":"Hanging warm lanterns"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[3,4,0],"block":"minecraft:lantern[hanging=true]"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[5,4,0],"block":"minecraft:lantern[hanging=true]"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[4,8,3],"block":"minecraft:lantern"}
+{"type":"done","summary":"Cute little cottage with pitched roof and windows"}

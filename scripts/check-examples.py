@@ -215,13 +215,39 @@ def audit(title: str, msgs: list[dict], *, strict_shape_count: bool = True) -> N
     ok(f"{total} blocks in the finished build") if total <= MAX_BLOCKS else bad(
         f"{total} blocks exceeds the {MAX_BLOCKS} the prompt promises")
 
-    # ---- does it have a way in?
+    # ---- is there a way in?
+    #
+    # Asking "is there an air carve at floor level" was wrong: it fails every build that
+    # is not a room. A bridge has no door and does not need one. The question that
+    # actually matters is whether the build encloses a space you cannot reach — so flood
+    # the air in from outside the bounding box and see what it cannot get to.
     ground = min(y for _, y, _ in world) if world else 0
-    carves = [s for s in shapes if bare(s["block"]) == "air"]
-    door = any(min(int(s["from"][1]), int(s["to"][1])) <= ground + 1
-               for s in carves if s.get("op") in ("fill", "hollow", "walls") and s.get("from"))
-    ok("cuts a doorway that reaches the floor") if door else bad(
-        "no air carve reaches floor level — the build has no door")
+    sealed = 0
+    if world:
+        xs, ys, zs = zip(*world)
+        lo = (min(xs) - 1, min(ys) - 1, min(zs) - 1)
+        hi = (max(xs) + 1, max(ys) + 1, max(zs) + 1)
+        outside, q = {lo}, deque([lo])
+        while q:
+            c = q.popleft()
+            for dx, dy, dz in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)):
+                nb = (c[0] + dx, c[1] + dy, c[2] + dz)
+                if not all(lo[i] <= nb[i] <= hi[i] for i in range(3)):
+                    continue
+                if nb in world or nb in outside:
+                    continue
+                outside.add(nb)
+                q.append(nb)
+        total_cells = (hi[0] - lo[0] + 1) * (hi[1] - lo[1] + 1) * (hi[2] - lo[2] + 1)
+        sealed = total_cells - len(world) - len(outside)
+
+    # A couple of stray pockets are ordinary geometry; a room you cannot enter is not.
+    if sealed == 0:
+        ok("nothing sealed off — any interior is reachable")
+    elif sealed <= 8:
+        ok(f"{sealed} tiny sealed pocket(s), not a room")
+    else:
+        bad(f"{sealed} air cells are sealed off — the build has no way in")
 
     # ---- attachment blocks
     unsupported = []

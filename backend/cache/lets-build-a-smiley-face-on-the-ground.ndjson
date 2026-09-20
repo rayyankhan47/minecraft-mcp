@@ -1,0 +1,15 @@
+{"type":"thought","text":"Laying the foundation for a cheerful face"}
+{"type":"shape","phase":"foundation","speed":"instant","op":"fill","from":[-8,0,-8],"to":[8,0,8],"block":"minecraft:yellow_concrete"}
+{"type":"thought","text":"Placing the left eye"}
+{"type":"shape","phase":"structure","speed":"fast","op":"sphere","center":[-3,1,-2],"radius":1,"block":"minecraft:black_concrete"}
+{"type":"thought","text":"Placing the right eye"}
+{"type":"shape","phase":"structure","speed":"fast","op":"sphere","center":[3,1,-2],"radius":1,"block":"minecraft:black_concrete"}
+{"type":"thought","text":"Carving the smile curve"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-4,1,3],"to":[4,1,5],"block":"minecraft:black_concrete"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-5,1,2],"to":[5,1,3],"block":"minecraft:black_concrete"}
+{"type":"shape","phase":"openings","speed":"fast","op":"fill","from":[-2,1,5],"to":[2,1,6],"block":"minecraft:black_concrete"}
+{"type":"thought","text":"Adding glowstone eyes to light up the smile"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[-3,2,-2],"block":"minecraft:glowstone"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[3,2,-2],"block":"minecraft:glowstone"}
+{"type":"shape","phase":"detail","speed":"slow","op":"set","pos":[0,2,4],"block":"minecraft:glowstone"}
+{"type":"done","summary":"Cheerful smiley face made of yellow concrete, 16x16 blocks"}
