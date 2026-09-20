@@ -110,18 +110,24 @@ public final class McmcpCommand implements CommandExecutor {
         origin.setY(world.getHighestBlockYAt(origin) + 1);
 
         boolean streaming = args.length > 1 && args[1].equalsIgnoreCase("stream");
+        boolean chaos = args.length > 2 && args[1].equalsIgnoreCase("chaos");
         plugin.getLogger().info("selftest: building at " + format(origin)
-                + (streaming ? " via the backend" : " from the hardcoded list"));
+                + (streaming || chaos ? " via the backend" : " from the hardcoded list"));
 
         PlacementEngine engine = new PlacementEngine(plugin, world, null, commandNanos);
         engine.start();
 
-        if (streaming) {
-            String prompt = args.length > 2
-                    ? String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length))
-                    : "a small medieval cottage";
-            new BuildSession(plugin, engine, null, "console", prompt,
-                    McmcpPlugin.BACKEND_URL + "/build",
+        if (streaming || chaos) {
+            String endpoint = McmcpPlugin.BACKEND_URL + "/build";
+            String prompt = "a small medieval cottage";
+            if (chaos) {
+                // Failure-path testing only — makes the backend misbehave on purpose.
+                endpoint += "?chaos=" + args[2];
+                prompt = "chaos " + args[2];
+            } else if (args.length > 2) {
+                prompt = String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length));
+            }
+            new BuildSession(plugin, engine, null, "console", prompt, endpoint,
                     origin.getBlockX(), origin.getBlockY(), origin.getBlockZ())
                     .startAsync();
             sender.sendMessage("selftest: streaming build started at " + format(origin));

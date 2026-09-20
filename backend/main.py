@@ -110,6 +110,62 @@ MOCK_BUILD: list[dict[str, Any]] = [
 ]
 
 
+# --------------------------------------------------------------------------- chaos
+
+# Deliberate misbehaviour, for failure-path testing. Every one of these must degrade
+# into "the player sees something and the server stays up" — never a stack trace on a
+# projector. Exercised by scripts/verify-failures.sh.
+CHAOS_MODES = ("malformed", "badblock", "oversized", "die", "empty")
+
+
+async def chaos_stream(mode: str) -> AsyncIterator[bytes]:
+    log.warning("CHAOS MODE %r — deliberately misbehaving", mode)
+
+    if mode == "empty":
+        # Closes immediately having said nothing at all.
+        return
+
+    # Always lay a real foundation first, so we can tell "handled the bad input and
+    # carried on" apart from "fell over before doing anything".
+    yield thought(f"chaos mode: {mode}")
+    yield line({"type": "shape", "phase": "foundation", "speed": "instant", "op": "fill",
+                "from": [0, 0, 0], "to": [8, 0, 8], "block": "minecraft:cobblestone"})
+    await asyncio.sleep(0.4)
+
+    if mode == "malformed":
+        yield b"this is not json at all\n"
+        yield b'{"type":"shape","op":"fill","from":[0,1,0]\n'      # truncated
+        yield b'{"type":"shape","op":"nonsense","block":"x"}\n'     # unknown op
+        yield b"```json\n"                                          # stray fence
+        yield b"\n"                                                 # empty line
+        yield line({"type": "shape", "phase": "structure", "speed": "fast", "op": "walls",
+                    "from": [0, 1, 0], "to": [8, 3, 8], "block": "minecraft:oak_planks"})
+
+    elif mode == "badblock":
+        for bad in ("minecraft:fake_block", "minecraft:unobtainium",
+                    "minecraft:oak_stairs[facing=sideways,half=diagonal]",
+                    "oak_planks", "", "minecraft:diamond_sword"):
+            yield line({"type": "shape", "phase": "structure", "speed": "fast", "op": "fill",
+                        "from": [0, 1, 0], "to": [8, 1, 8], "block": bad})
+            await asyncio.sleep(0.1)
+
+    elif mode == "oversized":
+        # Exceeds the 64-block per-axis limit: must be rejected outright.
+        yield line({"type": "shape", "phase": "structure", "speed": "instant", "op": "fill",
+                    "from": [0, 1, 0], "to": [200, 40, 200], "block": "minecraft:stone"})
+        # Within per-axis limits but enormous: must be truncated at the block cap.
+        yield line({"type": "shape", "phase": "structure", "speed": "instant", "op": "fill",
+                    "from": [0, 1, 0], "to": [60, 60, 60], "block": "minecraft:glass"})
+
+    elif mode == "die":
+        yield thought("about to fall over")
+        await asyncio.sleep(0.3)
+        # Abrupt death mid-stream, exactly as a crashed backend would look.
+        raise RuntimeError("chaos: backend died mid-stream")
+
+    yield done(f"chaos {mode} finished")
+
+
 async def mock_stream(prompt: str) -> AsyncIterator[bytes]:
     """Replays the hardcoded cottage with realistic pacing."""
     started = time.monotonic()
@@ -174,7 +230,16 @@ async def live_stream(prompt: str) -> AsyncIterator[bytes]:
 async def build(
     req: BuildRequest,
     mock: int = Query(0, description="1 forces the hardcoded build, no model call"),
+    chaos: str = Query("", description=f"failure-path testing: one of {CHAOS_MODES}"),
 ) -> StreamingResponse:
+    if chaos:
+        if chaos not in CHAOS_MODES:
+            return StreamingResponse(
+                iter([error(f"unknown chaos mode {chaos!r}")]),
+                media_type=NDJSON, headers=STREAM_HEADERS,
+            )
+        return StreamingResponse(chaos_stream(chaos), media_type=NDJSON, headers=STREAM_HEADERS)
+
     use_mock = bool(mock) or not llm.have_api_key()
 
     if use_mock and not mock:

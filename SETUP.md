@@ -117,18 +117,41 @@ If any of those three are wrong, stop the server and tell me.
 
 ---
 
-## 3. Handy in-game commands
+## 3. Verification scripts
+
+These drive the server console directly, so they work with nobody logged in. They all
+need the server started detached (`./scripts/deploy.sh --restart`), which sets up the
+console pipe they write to.
+
+| Script | What it proves |
+|---|---|
+| `./scripts/doctor.sh` | The toolchain is sane. Run before demoing. |
+| `./scripts/verify-build.sh` | The placement engine builds the hardcoded cottage correctly — asserts 13 real world blocks. |
+| `./scripts/verify-stream.sh` | Blocks appear *while the stream is still open*, not after it closes. |
+| `./scripts/verify-failures.sh` | Malformed JSON, bad block names, oversized builds and a dead backend all degrade gracefully. **Kills the backend at the end — restart it.** |
+| `./.venv/bin/python scripts/test-stream.py` | The backend flushes per line. |
+
+You can also send any console command yourself:
+
+```bash
+./scripts/mc.sh "time set day"
+```
+
+## 4. Handy in-game commands
 
 ```
+/mc2p a small medieval cottage with a stone chimney
+/mc2p local          — the hardcoded build; works with no backend and no API key
 /gamemode creative
 /time set day
 /weather clear
-/kill @e[type=item]
 ```
+
+`/mc2p local` is the break-glass path. It needs nothing but the plugin.
 
 ---
 
-## 4. Troubleshooting
+## 5. Troubleshooting
 
 | Symptom | Fix |
 |---|---|
