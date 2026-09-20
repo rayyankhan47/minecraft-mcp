@@ -3,8 +3,11 @@ package com.mcmcp;
 import com.mcmcp.model.BlockPlacement;
 import com.mcmcp.model.Speed;
 import org.bukkit.Bukkit;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -58,6 +61,15 @@ public final class PlacementEngine {
     private int tickCounter;
     private int placed;
     private int failed;
+
+    /**
+     * Sound is the single highest-impact thing here — it is what makes a build feel
+     * alive rather than pasted in. It is also what turns into noise fastest, so no
+     * more than this many per tick however much is landing.
+     */
+    private static final int MAX_SOUNDS_PER_TICK = 4;
+
+    private int soundsThisTick;
 
     /** When the player hit enter. The number that matters is command to first block. */
     private final long commandNanos;
@@ -150,6 +162,7 @@ public final class PlacementEngine {
         }
 
         tickCounter++;
+        soundsThisTick = 0;
 
         Speed tier = head.speed;
 
@@ -183,6 +196,10 @@ public final class PlacementEngine {
             // pop off, water spreads, and a half-built structure collapses as you watch.
             block.setBlockData(p.data, false);
 
+            if (p.speed != Speed.INSTANT) {
+                effects(block, p.data);
+            }
+
             placed++;
             if (firstBlockNanos < 0) {
                 firstBlockNanos = System.nanoTime();
@@ -195,6 +212,27 @@ public final class PlacementEngine {
             if (failed <= 5) {
                 plugin.getLogger().warning("placement failed at " + p + ": " + t);
             }
+        }
+    }
+
+    /** Sound and particles. Skipped for the instant tier, which would be a wall of noise. */
+    private void effects(Block block, BlockData data) {
+        try {
+            if (soundsThisTick < MAX_SOUNDS_PER_TICK) {
+                soundsThisTick++;
+                // The block's own placement sound, so stone thuds and wood knocks.
+                Sound sound;
+                try {
+                    sound = data.getSoundGroup().getPlaceSound();
+                } catch (Throwable ignored) {
+                    sound = Sound.BLOCK_STONE_PLACE;
+                }
+                world.playSound(block.getLocation(), sound, 0.6f, 1.0f);
+            }
+            world.spawnParticle(Particle.BLOCK, block.getLocation().add(0.5, 0.5, 0.5),
+                    8, 0.25, 0.25, 0.25, 0.0, data);
+        } catch (Throwable ignored) {
+            // Effects are decoration. They must never be able to stop a build.
         }
     }
 
