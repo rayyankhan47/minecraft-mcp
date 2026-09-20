@@ -173,6 +173,21 @@ async def messages(request: Request):
     print(f"[mock] scenario={name} model={payload.get('model')} "
           f"cache_control={cached} system_chars={system_chars}", file=sys.stderr, flush=True)
 
+    # A non-streaming request: doctor.sh uses one of these to confirm the model id
+    # resolves before a demo. Answer it like the real API does.
+    if not payload.get("stream"):
+        if payload.get("model") == "does-not-exist":
+            return JSONResponse(status_code=404,
+                                content={"type": "error",
+                                         "error": {"type": "not_found_error",
+                                                   "message": "model: does-not-exist"}})
+        return JSONResponse(content={
+            "id": "msg_mock", "type": "message", "role": "assistant",
+            "model": payload.get("model"), "content": [{"type": "text", "text": "hi"}],
+            "stop_reason": "max_tokens", "stop_sequence": None,
+            "usage": {"input_tokens": 8, "output_tokens": 1},
+        })
+
     if name == "overloaded":
         return JSONResponse(status_code=529,
                             content={"type": "error",

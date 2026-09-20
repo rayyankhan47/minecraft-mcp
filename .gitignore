@@ -26,3 +26,5 @@ backend/.env
 .idea/
 .vscode/
 *.iml
+
+bakeoff/

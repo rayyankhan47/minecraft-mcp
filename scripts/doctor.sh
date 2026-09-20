@@ -53,5 +53,38 @@ else
   warn "not downloaded yet (run scripts/setup-server.sh)"
 fi
 
+echo "Anthropic API key"
+if [[ -f "$REPO_ROOT/backend/.env" ]] && grep -qE '^ANTHROPIC_API_KEY=.+' "$REPO_ROOT/backend/.env"; then
+  ok "backend/.env has a key (contents never read or logged)"
+
+  # Confirm the model id actually resolves. "claude-haiku-4-5" is an alias; if it is not
+  # a live one the whole demo 404s on the first prompt, and that is not something to find
+  # out on stage. One request, max_tokens=1, no system prompt — a fraction of a cent.
+  echo "Model id"
+  MODEL_CHECK="$("$REPO_ROOT/.venv/bin/python" - <<'PYCHK' 2>&1
+import os, sys
+sys.path.insert(0, os.path.join(os.getcwd(), "backend"))
+from dotenv import load_dotenv
+load_dotenv("backend/.env")
+import anthropic, llm
+try:
+    anthropic.Anthropic(max_retries=0).messages.create(
+        model=llm.MODEL, max_tokens=1, messages=[{"role": "user", "content": "hi"}])
+    print(f"OK {llm.MODEL}")
+except anthropic.NotFoundError:
+    print(f"NOTFOUND {llm.MODEL}")
+except Exception as exc:
+    print(f"ERR {type(exc).__name__}: {exc}")
+PYCHK
+)"
+  case "$MODEL_CHECK" in
+    OK*)       ok "${MODEL_CHECK#OK } resolves" ;;
+    NOTFOUND*) bad "${MODEL_CHECK#NOTFOUND } does not exist — set MCMCP_MODEL to a valid id (e.g. claude-haiku-4-5-20251001)" ;;
+    *)         warn "could not check: $MODEL_CHECK" ;;
+  esac
+else
+  warn "no backend/.env key — the backend will serve the offline build instead"
+fi
+
 echo
 if (( fail )); then echo "FAILED"; exit 1; else echo "All required checks passed."; fi
